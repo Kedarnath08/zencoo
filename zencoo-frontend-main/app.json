@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "z-frontend",
+    "slug": "z-frontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": false,
+      "package": "com.kedarnath08.zfrontend"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ddba1dfa-99a5-4988-be86-2c79795241e5"
+      }
+    },
+    "owner": "kedarnath08",
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

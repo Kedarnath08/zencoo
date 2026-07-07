@@ -1,0 +1,49 @@
+# Backend (Java/Spring Boot)
+zencoo-backend-main/target/
+zencoo-backend-main/.mvn/
+zencoo-backend-main/mvnw
+zencoo-backend-main/mvnw.cmd
+zencoo-backend-main/.DS_Store
+zencoo-backend-main/.settings/
+zencoo-backend-main/.project
+zencoo-backend-main/.classpath
+zencoo-backend-main/.idea/
+zencoo-backend-main/*.iml
+zencoo-backend-main/bin/
+
+# Frontend (React Native/Expo)
+zencoo-frontend-main/node_modules/
+zencoo-frontend-main/.expo/
+zencoo-frontend-main/.expo-shared/
+zencoo-frontend-main/dist/
+zencoo-frontend-main/npm-debug.*
+zencoo-frontend-main/*.jks
+zencoo-frontend-main/*.p8
+zencoo-frontend-main/*.p12
+zencoo-frontend-main/*.key
+zencoo-frontend-main/*.mobileprovision
+zencoo-frontend-main/*.orig.*
+zencoo-frontend-main/web-build/
+zencoo-frontend-main/.env
+zencoo-frontend-main/.env.local
+zencoo-frontend-main/.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+Thumbs.db

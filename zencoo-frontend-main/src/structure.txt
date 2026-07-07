@@ -1,0 +1,68 @@
+Folder PATH listing for volume New Volume
+Volume serial number is 486F-DDE1
+D:.
+|   structure.txt
+|   
++---@types
+|       react-native-vector-icons.d.ts
+|       svg.d.ts
+|       
++---api
+|       user.ts
+|       
++---components
+|       BottomNavBar.tsx
+|       FeedPostCard.tsx
+|       PlacedOrderCard.tsx
+|       RecievedOrderCard.tsx
+|       
++---data
+|       feed.json
+|       myProfile.json
+|       othersProfiles.json
+|       placedOrders.json
+|       recievedOrders.json
+|       residents.json
+|       users.json
+|       
++---navigation
+|       AppNavigator.tsx
+|       AuthNavigator.tsx
+|       PostStack.tsx
+|       ResidentsStack.tsx
+|       
++---screens
+|   |   Feed.tsx
+|   |   Orders.tsx
+|   |   
+|   +---posting
+|   |       PostingScreen.tsx
+|   |       
+|   +---residents
+|   |   |   Residents.tsx
+|   |   |   
+|   |   \---wings
+|   |           Wing.tsx
+|   |           
+|   +---userAuth
+|   |       Login.tsx
+|   |       SignUpStepOne.tsx
+|   |       SignUpstepThree.tsx
+|   |       SignUpStepTwo.tsx
+|   |       WelcomePage.tsx
+|   |       
+|   \---userProfile
+|           MyProfile.tsx
+|           OthersProfile.tsx
+|           
+\---styles
+        feedStyles.ts
+        loginStyles.ts
+        myProfileStyles.ts
+        ordersStyles.ts
+        othersProfileStyles.ts
+        postingScreenStyles.ts
+        residentsStyles.ts
+        signupStyles.ts
+        wingsStyles.ts
+        

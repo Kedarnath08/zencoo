@@ -1,0 +1,21 @@
+{
+  "id": "user-2143",
+  "username": "janhvi_kapoor",
+  "displayName": "Janhvi Kapoor",
+  "wing": "2",
+  "door": "2143",
+  "bio": "",
+  "hometown": "",
+  "profilePic": "../../../assets/images/profile-placeholder.jpg",
+  "headerBg": null,
+  "friends": 20,
+  "posts": [
+    "../../../assets/images/pulses.jpg",
+    "../../../assets/images/veggies (2).jpg",
+    "../../../assets/images/pulses.jpg",
+    "../../../assets/images/dates.jpg",
+    "../../../assets/images/veggies (2).jpg",
+    "../../../assets/images/pulses.jpg",
+    "../../../assets/images/dates.jpg"
+  ]
+}
