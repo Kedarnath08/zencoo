@@ -24,8 +24,8 @@ The project is split into two independent repos/folders:
 A production-hardening pass (phases 1–6) and feature-completion pass (residents, orders, follow, post-detail, notifications) were done on top of the original prototype. Status now:
 
 - ✅ **Real, wired to backend:** Sign-up (auto-login), login (BCrypt + JWT), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
-- ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid; and a **real-time notifications system** (bell icon with unread badge, tap → notifications screen, auto-created for likes/comments/follows/order-status-changes).
-- 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Remaining features are net-new (richer commerce flow, messaging) — see below.
+- ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`) with an **order-detail screen** (status timeline, price, role-aware actions); **post pricing** (optional price on a post, snapshotted into the order at purchase time so later edits don't rewrite history); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid; and a **real-time notifications system** (bell icon with unread badge, tap → notifications screen, auto-created for likes/comments/follows/order-status-changes).
+- 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Only messaging remains — see below.
 - 🔴 **Intentionally dropped:** Google login (commented out on both ends; `firebase`/`expo-auth-session`/`expo-random`/`expo-crypto` were removed as unused deps in the cleanup pass).
 
 ### What the hardening pass changed
@@ -87,7 +87,7 @@ com.zencoo
 - `GET /posts` → feed (all posts, newest first); each `PostDto` has author info, `likeCount`, `commentCount`, `likedByMe`.
 - `GET /posts/{postId}` → a single post (same `PostDto` shape) — backs the post-detail screen; 404 if missing.
 - `GET /posts/user/{authorId}` → posts by one user (profile grids).
-- `POST /posts` — body `{imageUrl, caption}` → creates a post (201).
+- `POST /posts` — body `{imageUrl, caption, price?}` → creates a post (201). `price` is optional — when set, the post is listed for sale and can be ordered.
 - `DELETE /posts/{postId}` → delete own post (403 if not owner).
 - `POST /posts/{postId}/like` → toggles like, returns the updated `PostDto`.
 - `GET /posts/{postId}/comments` → list of `CommentDto`.
@@ -95,9 +95,10 @@ com.zencoo
 
 ### Entities
 - `User`: `id, email (unique), username (unique), passwordHash (BCrypt), fullName, doorNumber, community, bio, hometown, createdAt, profilePic`.
-- `Post`: `id, user (FK), imageUrl, caption, createdAt`.
+- `Post`: `id, user (FK), imageUrl, caption, price (optional, BigDecimal), createdAt`.
 - `PostLike`: `id, post (FK), user (FK)` — unique on `(post, user)`.
 - `PostComment`: `id, post (FK), user (FK), text, createdAt`.
+- `Notification`: `id, user (FK), type (LIKE/COMMENT/ORDER_STATUS/FOLLOW), relatedId, title, message, isRead, createdAt`.
 
 ### Config (env vars, with dev defaults in `application.properties`)
 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (≥ 64 bytes), `JWT_EXPIRATION_MS`, `CORS_ALLOWED_ORIGINS`.
@@ -109,10 +110,11 @@ com.zencoo
 **Orders** (`/api/orders`, requires JWT) — resident-to-resident orders:
 - `GET /orders/placed` → orders I placed (buyer = me).
 - `GET /orders/received` → orders placed with me (seller = me).
-- `POST /orders` — body `{sellerId, productName, productImage?, quantity?, note?}` → creates a PENDING order (can't order from yourself).
+- `GET /orders/{orderId}` → single order detail (`OrderDto`, adds `unitPrice`/`totalPrice`); 403 if you're neither buyer nor seller, 404 if missing. Backs the order-detail screen.
+- `POST /orders` — body `{sellerId, productName, productImage?, quantity?, price?, note?}` → creates a PENDING order (can't order from yourself). `price` is snapshotted onto the order as `unitPrice` (defaults to 0) so later edits to the post's price don't retroactively change past orders.
 - `PATCH /orders/{id}/status` — body `{status}` → role-aware transitions: seller does PENDING→ACCEPTED/REJECTED and ACCEPTED→COMPLETED/CANCELLED; buyer does PENDING→CANCELLED. Wrong party → 403; illegal transition → 400.
 
-`Order` entity: `id, buyer (FK), seller (FK), productName, productImage, quantity, note, status (enum), createdAt, updatedAt`.
+`Order` entity: `id, buyer (FK), seller (FK), productName, productImage, quantity, unitPrice, note, status (enum), createdAt, updatedAt`.
 
 **Follow** (`/api/users/{id}/...`, requires JWT) — asymmetric follow (Instagram-style):
 - `POST /users/{id}/follow` → current user follows `{id}` (idempotent; can't follow yourself).
@@ -121,6 +123,13 @@ com.zencoo
 - `GET /users/{id}/followers` / `GET /users/{id}/following` → lists of `ResidentDto` (backs the Followers/Following screen).
 
 `Follow` entity: `id, follower (FK), following (FK), createdAt` — unique on `(follower, following)`. Mapping to `ResidentDto` (wing derivation, `@`-stripping) is factored into a shared `ResidentMapper` util so `ResidentService` and `FollowService` don't duplicate it.
+
+**Notifications** (`/api/notifications`, requires JWT):
+- `GET /notifications` → paginated list, newest first.
+- `GET /notifications/unread-count` → `{unreadCount}`.
+- `PUT /notifications/{id}/read` → marks one as read.
+- `PUT /notifications/mark-all-read` → marks all as read.
+- Auto-created by `PostService` (like/comment, excludes the post's own author), `FollowService` (new follower), and `OrderService` (status changes → the relevant party).
 
 ### Hardening in place
 - **Bean validation**: mutating endpoints bind typed `@Valid` request DTOs (`dto/request/*`); validation failures return `400 {message}` via `GlobalExceptionHandler`.
@@ -151,13 +160,13 @@ App.tsx  (wraps everything in <AuthProvider>)
     │     WelcomePage → SignUpStepOne → SignUpStepTwo → SignUpStepThree → signIn(token)
     │     Login → signIn(token)
     └── if authed → AppNavigator (bottom tab bar, custom <BottomNavBar/>):
-          ├── Feed            (src/screens/Feed.tsx)
+          ├── Feed            → FeedStack: FeedMain (Feed.tsx) → Notifications
           ├── Residents       → ResidentsStack: Wing → ResidentsList → OthersProfile → PostDetail / FollowList
           ├── NewPost         → PostStack: PostingScreen
-          ├── Orders          (src/screens/Orders.tsx)  — Placed / Received tabs
+          ├── Orders          → OrdersStack: OrdersMain (Orders.tsx) → OrderDetail → OthersProfile
           └── Myprofile       → ProfileStack: ProfileMain (MyProfile) → OthersProfile → PostDetail / FollowList
 ```
-`ProfileStack` and `ResidentsStack` both register `OthersProfile`, `PostDetail`, and `FollowList` (same component files, registered under each navigator) so either entry point — the residents directory or your own profile — can push into a post's detail view or a followers/following list. This is a deliberate lightweight choice: React Navigation doesn't let two sibling tab-stacks share a screen instance, and a full root-level stack refactor wasn't warranted for two shared screens.
+`ProfileStack`, `ResidentsStack`, and `OrdersStack` all register `OthersProfile` (same component file, registered under each navigator) so any entry point can push into a user's profile; `ProfileStack`/`ResidentsStack` additionally share `PostDetail`/`FollowList` the same way. This is a deliberate lightweight choice: React Navigation doesn't let sibling tab-stacks share a screen instance, and a full root-level stack refactor wasn't warranted for a handful of shared screens. `Feed` and `Orders` were originally bare tab screens with no stack (couldn't push anywhere) — `FeedStack`/`OrdersStack` were added specifically to enable Notifications and OrderDetail respectively.
 
 ### Screens & what they do
 
@@ -169,15 +178,17 @@ App.tsx  (wraps everything in <AuthProvider>)
 - `Login` — Formik + Yup → `loginUser` → `signIn(token)`. Google button removed.
 
 **Main app**
-- `Feed.tsx` — `GET /api/posts`, pull-to-refresh, refreshes on focus (so a new post appears), optimistic like toggle (`POST /posts/{id}/like`), a comments modal (`GET/POST /posts/{id}/comments`), and a cart button that places an order for that post's item from its author (`POST /api/orders`).
+- `Feed.tsx` — `GET /api/posts`, pull-to-refresh, refreshes on focus (so a new post appears), optimistic like toggle (`POST /posts/{id}/like`), a comments modal (`GET/POST /posts/{id}/comments`), a bell icon with unread-count badge (`GET /notifications/unread-count`, refreshes on focus) → `Notifications`, and a cart button that places an order for that post's item from its author, including its price if listed (`POST /api/orders`).
+- `Notifications.tsx` (`src/screens/`) — list of notifications (type icon, title/message, unread dot), tap marks as read and navigates to the related content (post detail, profile, or Orders depending on type).
 - `residents/wings/Wing.tsx` — lists 5 hardcoded wings; tapping one opens the residents list.
 - `residents/Residents.tsx` — `GET /api/residents?wing=`, filters by search box, tap a resident → `OthersProfile`.
 - `userProfile/OthersProfile.tsx` — `GET /api/residents/{id}`. Avatar, bio, **Followers**/Posts stats (Followers tappable → `FollowList`), posts grid (tap a post → `PostDetail`), a working **Follow/Following** toggle (`POST`/`DELETE /users/{id}/follow`). Message button is still a placeholder.
 - `userProfile/MyProfile.tsx` — merges real data from `GET /api/profile`. Inline-editable **bio**/**hometown** (PATCH), avatar upload → Cloudinary → PATCH, **logout button**, a live posts grid (`GET /posts/user/{me}`) whose edit mode deletes real posts (`DELETE /posts/{id}`, tap a post when not in edit mode → `PostDetail`), and a **Followers** stat → `FollowList`.
 - `PostDetail.tsx` (`src/screens/`, shared) — single post view: image, author, like toggle, inline (non-modal) comment list + input, and a delete button shown only when opened with `isOwn: true` (avoids an extra call to determine ownership).
 - `FollowList.tsx` (`src/screens/`, shared) — Followers/Following tabs for a given user id; tapping a row opens `OthersProfile`.
-- `posting/PostingScreen.tsx` — pick from camera/gallery → `uploadImageToCloudinary` → `POST /api/posts`, with a spinner and error handling. Navigates to Feed, which refreshes on focus.
-- `Orders.tsx` — two tabs, both live. **Placed** (`GET /api/orders/placed`) with cancel-if-pending. **Received** (`GET /api/orders/received`) with Accept/Reject/Complete/Cancel (`PATCH /api/orders/{id}/status`). Status colour badges.
+- `posting/PostingScreen.tsx` — pick from camera/gallery → `uploadImageToCloudinary` → `POST /api/posts`, with an optional price field (₹, lists the item for sale) and a spinner/error handling. Navigates to Feed, which refreshes on focus.
+- `Orders.tsx` — two tabs, both live. **Placed** (`GET /api/orders/placed`) with cancel-if-pending. **Received** (`GET /api/orders/received`) with Accept/Reject/Complete/Cancel (`PATCH /api/orders/{id}/status`). Status colour badges, price/total shown when set. Tapping a card opens `OrderDetail`; tapping the seller/customer name opens `OthersProfile`.
+- `OrderDetail.tsx` (`src/screens/`) — product image/name, unit price × quantity = total, a visual status timeline (Placed → Accepted → Completed, or a red terminal badge for Rejected/Cancelled), the counterparty (tappable → profile), note, timestamps, and the same role-aware accept/reject/complete/cancel actions as the list cards.
 
 ### Components (`src/components/`)
 - `BottomNavBar.tsx` — custom orange (`#FF8C00`) tab bar with SVG icons and an active indicator; center "NewPost" has a circular bordered plus.
@@ -189,16 +200,16 @@ App.tsx  (wraps everything in <AuthProvider>)
 - `user.ts` — auth (`checkEmailRegistered`, `checkUsernameUnique`, `registerUser`, `loginUser`) + own profile (`fetchMyProfile`, `updateBio`, `updateHometown`, `updateProfilePic`).
 - `posts.ts` — `fetchFeed`, `fetchPost`, `fetchUserPosts`, `createPost`, `deletePost`, `toggleLike`, `fetchComments`, `addComment`.
 - `residents.ts` — `fetchResidents`, `fetchResident` (returns `ResidentProfile` with `posts: PostSummary[]`).
-- `orders.ts` — `fetchPlacedOrders`, `fetchReceivedOrders`, `createOrder`, `updateOrderStatus`.
+- `orders.ts` — `fetchPlacedOrders`, `fetchReceivedOrders`, `fetchOrder`, `createOrder`, `updateOrderStatus`.
 - `follow.ts` — `followUser`, `unfollowUser`, `fetchFollowers`, `fetchFollowing`.
-- `src/utils/secureStore.ts` — `saveJWT`/`getJWT`/`deleteJWT`. `src/utils/uploadImage.ts` — shared Cloudinary upload used by posting + the profile-pic hook. `src/data/myProfile.json` is the only mock file left (supplies the `headerBg` default and avatar fallback).
+- `notifications.ts` — `fetchNotifications`, `fetchUnreadCount`, `markAsRead`, `markAllAsRead`.
+- `src/utils/secureStore.ts` — `saveJWT`/`getJWT`/`deleteJWT`. `src/utils/uploadImage.ts` — shared Cloudinary upload used by posting + the profile-pic hook. `src/utils/currency.ts` — `formatPrice` (₹, trims trailing `.00`). `src/data/myProfile.json` is the only mock file left (supplies the `headerBg` default and avatar fallback).
 
 ### Styling
 All screen styles live in `src/styles/*.ts` as `StyleSheet` objects (one file per screen); `PostDetail.tsx` and `FollowList.tsx` reuse `feedStyles`/`residentsStyles`/`ordersStyles` rather than adding new style files. Brand colour is orange (`#FF8C00` / `#FFA500`). Icons are SVGs in `assets/icons/` loaded via `react-native-svg-transformer` (see `metro.config.js`, `src/@types/svg.d.ts`).
 
 ### Remaining frontend gaps / tech debt
-- Follow / Message / Share / Save buttons: **Follow now works**; Message/Share/Save are still placeholders.
-- Notification bell (Feed app bar) is not wired to anything (no notification system yet).
+- Follow / Message / Share / Save buttons: **Follow now works**; Message/Share/Save are still placeholders (Message is deliberately deferred — see below).
 
 ---
 
@@ -219,11 +230,9 @@ All screen styles live in `src/styles/*.ts` as `StyleSheet` objects (one file pe
 
 ## Suggested next steps (if you resume this)
 
-Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens. Remaining:
+Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen). Remaining:
 
-1. **Notifications** — feed bell + order/follow events have no notification system.
-2. **Richer ordering** — a real product/checkout flow (price, catalog) instead of the minimal "order this post's item" shortcut; an order-detail screen (analogous to the post-detail screen).
-3. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
+1. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
 
 See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the current feature-by-feature status dashboard.
 

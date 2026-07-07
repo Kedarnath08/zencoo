@@ -1,6 +1,6 @@
 # Zencoo — Project Status
 
-**Last updated:** 2026-07-06 (follow system, cleanup, prod-hardening, post-detail + followers/following screens)
+**Last updated:** 2026-07-07 (notifications system, richer ordering — post pricing, order-detail screen)
 **Scope of this doc:** a living status dashboard — what's done, what's live vs mock, what's next. For the full architectural overview see [PROJECT.md](PROJECT.md).
 
 Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not built / placeholder
@@ -24,8 +24,10 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 | Other user's profile | ✅ | ✅ `GET /api/residents/{id}` | **Live** |
 | Profile posts grid (own & others) | ✅ | ✅ `GET /posts/user/{id}` | **Live** |
 | Delete own posts (profile edit mode) | ✅ | ✅ `DELETE /posts/{id}` | **Live** |
-| Place an order (from feed cart) | ✅ | ✅ `POST /api/orders` | **Live** |
+| Post pricing (optional "list for sale" price) | ✅ posting screen + price tag | ✅ `Post.price` | **Live** |
+| Place an order (from feed cart, price snapshotted) | ✅ | ✅ `POST /api/orders` | **Live** |
 | Orders — placed / received lists | ✅ | ✅ `GET /api/orders/{placed,received}` | **Live** |
+| Order detail screen (timeline, price, actions) | ✅ | ✅ `GET /api/orders/{id}` | **Live** |
 | Order status flow (accept/reject/complete/cancel) | ✅ | ✅ `PATCH /api/orders/{id}/status` | **Live** |
 | Follow (follow/unfollow, follower counts) | ✅ | ✅ `POST/DELETE /api/users/{id}/follow` | **Live** |
 | Followers / following lists | ✅ | ✅ `GET /api/users/{id}/followers\|following` | **Live** |
@@ -106,11 +108,23 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
   - **Bell icon** in Feed header with red **unread count badge** — tap navigates to Notifications, count refreshes on tab focus.
   - Reuses existing app colors/styles (orange #FF8C00 for primary, red for likes, gray for others).
 
+### Richer ordering (this session)
+- Backend:
+  - **`Post.price`** (optional `BigDecimal`) — a post can be listed for sale; `CreatePostRequest`/`PostDto` carry it through (`@DecimalMin(0)`).
+  - **`Order.unitPrice`** — snapshotted from the post's price at order-creation time (defaults to 0 if omitted), so later price edits on the post don't rewrite past orders. `OrderDto` adds `unitPrice` + a computed `totalPrice` (`unitPrice × quantity`).
+  - **`GET /api/orders/{orderId}`** — single order detail, authorized to buyer/seller only (403 for anyone else, 404 if missing).
+  - Test: `postPriceFlowsIntoOrderAndOrderDetailIsAuthorized` (price on post → snapshotted on order → total computed → detail endpoint authorization → 404 for missing order).
+- Frontend:
+  - **Posting screen** gained an optional price field (₹, numeric, validated non-negative); **`FeedPostCard`** shows a price tag overlay on the image when set; `Feed.tsx`'s order confirmation includes the price and passes it through to `createOrder`.
+  - **`OrderDetail.tsx`** (new) — product image/name, price × qty = total, a visual status timeline (Placed → Accepted → Completed, or a red terminal badge for Rejected/Cancelled), counterparty (buyer/seller) tappable to their profile, note, timestamps, and role-aware accept/reject/complete/cancel actions.
+  - **`OrdersStack`** (new) — replaces the bare `Orders` tab screen (was previously unable to push new screens) with `OrdersMain` + `OrderDetail` + `OthersProfile`.
+  - `Orders.tsx` order cards are now tappable (→ `OrderDetail`); the seller/customer name links, previously unwired no-ops, now navigate to `OthersProfile`.
+
 ---
 
 ## Verification
 
-- **Backend:** `./mvnw test` — **10 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed → like → comment → get-post-by-id → residents (with post summaries) → order lifecycle & authorization → follow/unfollow & counts → followers/following lists → **notifications (like, comment, follow, order status)** → input validation → auth rate limiting). No MySQL required.
+- **Backend:** `./mvnw test` — **11 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed → like → comment → get-post-by-id → residents (with post summaries) → order lifecycle & authorization → follow/unfollow & counts → followers/following lists → notifications (like, comment, follow, order status) → **post pricing → order snapshot/total → order-detail authorization** → input validation → auth rate limiting). No MySQL required.
 - **Frontend:** `npx tsc --noEmit` — **clean**.
 - ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real.
 
@@ -118,8 +132,7 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 
 ## Remaining roadmap
 
-1. **Richer ordering** — a real product/checkout flow (price, product catalog) instead of the minimal "order this post's item" shortcut; an order-detail screen (analogous to the new post-detail screen).
-2. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
+1. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
 
 ---
 
