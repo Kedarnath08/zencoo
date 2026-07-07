@@ -28,6 +28,7 @@ import {
 } from "../api/posts";
 import { createOrder } from "../api/orders";
 import { timeAgo } from "../utils/time";
+import { formatPrice } from "../utils/currency";
 import { fetchUnreadCount } from "../api/notifications";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/FeedStack";
@@ -166,9 +167,10 @@ const FeedScreen: React.FC = () => {
 
   const placeOrder = (post: FeedPost) => {
     const productName = post.caption?.trim() || "Item";
+    const priceLine = post.price != null ? ` for ${formatPrice(post.price)}` : "";
     Alert.alert(
       "Place order",
-      `Order "${productName}" from ${post.fullName}?`,
+      `Order "${productName}"${priceLine} from ${post.fullName}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -180,6 +182,7 @@ const FeedScreen: React.FC = () => {
                 productName,
                 productImage: post.imageUrl,
                 quantity: 1,
+                price: post.price,
               });
               Alert.alert(
                 "Order placed",

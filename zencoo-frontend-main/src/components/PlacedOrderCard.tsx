@@ -10,19 +10,27 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Order } from "../api/orders";
 import { formatDateTime } from "../utils/time";
+import { formatPrice } from "../utils/currency";
 
 const placeholder = require("../../assets/images/profile-placeholder.jpg");
 
 const PlacedOrderCard = ({
   order,
+  onPress,
   onSellerPress,
   onCancel,
 }: {
   order: Order;
+  onPress?: () => void;
   onSellerPress: (sellerId: number) => void;
   onCancel?: () => void;
 }) => (
-  <View style={styles.card}>
+  <TouchableOpacity
+    style={styles.card}
+    onPress={onPress}
+    activeOpacity={onPress ? 0.8 : 1}
+    disabled={!onPress}
+  >
     {/* X button for pending orders */}
     {order.status === "PENDING" && onCancel && (
       <TouchableOpacity
@@ -49,6 +57,12 @@ const PlacedOrderCard = ({
         <Text style={styles.label}>Quantity: </Text>
         <Text style={styles.value}>{order.quantity}</Text>
       </View>
+      {order.unitPrice > 0 && (
+        <View style={styles.row}>
+          <Text style={styles.label}>Total: </Text>
+          <Text style={styles.value}>{formatPrice(order.totalPrice)}</Text>
+        </View>
+      )}
       <View style={styles.row}>
         <Text style={styles.label}>Placed on: </Text>
         <Text style={styles.value}>{formatDateTime(order.createdAt)}</Text>
@@ -58,7 +72,7 @@ const PlacedOrderCard = ({
         <Text style={styles.value}>{order.status}</Text>
       </View>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({

@@ -141,6 +141,42 @@ const styles = StyleSheet.create({
     minHeight: 60,
     justifyContent: "center",
   },
+  priceRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+  },
+  priceRowFocused: {
+    borderColor: "#FFA500",
+    shadowColor: "#FFA500",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  priceSymbol: {
+    fontSize: 18,
+    color: "#888",
+    marginRight: 6,
+  },
+  priceInput: {
+    flex: 1,
+    height: 52,
+    fontSize: 18,
+  },
+  priceHint: {
+    fontSize: 13,
+    color: "#999",
+    marginTop: -14,
+    marginBottom: 20,
+    alignSelf: "flex-start",
+  },
 });
 
 export default styles;

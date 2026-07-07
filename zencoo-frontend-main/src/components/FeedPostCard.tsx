@@ -9,6 +9,7 @@ import {
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import type { FeedPost } from "../api/posts";
 import { timeAgo } from "../utils/time";
+import { formatPrice } from "../utils/currency";
 
 const placeholderAvatar = require("../../assets/images/profile-placeholder.jpg");
 
@@ -50,6 +51,11 @@ const FeedPostCard: React.FC<FeedPostCardProps> = ({
     {/* Card Image */}
     <View style={styles.imageWrapper}>
       <Image source={{ uri: post.imageUrl }} style={styles.cardImage} />
+      {post.price != null && (
+        <View style={styles.priceTag}>
+          <Text style={styles.priceTagText}>{formatPrice(post.price)}</Text>
+        </View>
+      )}
     </View>
     {/* Action Bar */}
     <View style={styles.actionBarContainer}>
@@ -152,6 +158,20 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     position: "relative",
+  },
+  priceTag: {
+    position: "absolute",
+    top: 20,
+    right: 12,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  priceTagText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
   },
   cardImage: {
     width: "100%",

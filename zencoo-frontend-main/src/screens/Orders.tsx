@@ -7,7 +7,9 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { OrdersStackParamList } from "../navigation/OrdersStack";
 import styles from "../styles/ordersStyles";
 import PlacedOrderCard from "../components/PlacedOrderCard";
 import ReceivedOrderCard from "../components/RecievedOrderCard";
@@ -29,6 +31,8 @@ const receivedStatusRank = (status: OrderStatus) => {
 };
 
 const Orders = () => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<OrdersStackParamList>>();
   const [activeTab, setActiveTab] = useState<"placed" | "received">("placed");
   const [placed, setPlaced] = useState<Order[]>([]);
   const [received, setReceived] = useState<Order[]>([]);
@@ -101,7 +105,15 @@ const Orders = () => {
         renderItem={({ item }) => (
           <PlacedOrderCard
             order={item}
-            onSellerPress={() => {}}
+            onPress={() =>
+              navigation.navigate("OrderDetail", {
+                orderId: item.id,
+                role: "placed",
+              })
+            }
+            onSellerPress={(sellerId) =>
+              navigation.navigate("OthersProfile", { id: sellerId.toString() })
+            }
             onCancel={
               item.status === "PENDING"
                 ? () => confirmCancelPlaced(item.id)
@@ -134,7 +146,15 @@ const Orders = () => {
         renderItem={({ item }) => (
           <ReceivedOrderCard
             order={item}
-            onCustomerPress={() => {}}
+            onPress={() =>
+              navigation.navigate("OrderDetail", {
+                orderId: item.id,
+                role: "received",
+              })
+            }
+            onCustomerPress={(customerId) =>
+              navigation.navigate("OthersProfile", { id: customerId.toString() })
+            }
             onAccept={() => changeStatus(item.id, "ACCEPTED")}
             onReject={() => changeStatus(item.id, "REJECTED")}
             onComplete={() => changeStatus(item.id, "COMPLETED")}

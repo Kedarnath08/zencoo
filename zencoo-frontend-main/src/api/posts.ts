@@ -8,6 +8,7 @@ export interface FeedPost {
   profilePic: string | null;
   imageUrl: string;
   caption: string;
+  price: number | null;
   createdAt: string;
   likeCount: number;
   commentCount: number;
@@ -41,9 +42,10 @@ export async function fetchUserPosts(authorId: number): Promise<FeedPost[]> {
 
 export async function createPost(
   imageUrl: string,
-  caption: string
+  caption: string,
+  price?: number | null
 ): Promise<FeedPost> {
-  const res = await api.post(`/posts`, { imageUrl, caption });
+  const res = await api.post(`/posts`, { imageUrl, caption, price });
   return res.data;
 }
 

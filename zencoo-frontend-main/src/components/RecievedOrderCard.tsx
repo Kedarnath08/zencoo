@@ -10,6 +10,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Order } from "../api/orders";
 import { formatDateTime } from "../utils/time";
+import { formatPrice } from "../utils/currency";
 
 const placeholder = require("../../assets/images/profile-placeholder.jpg");
 
@@ -37,6 +38,7 @@ const StatusBadge = ({ status }: { status: string }) => (
 
 const ReceivedOrderCard = ({
   order,
+  onPress,
   onCustomerPress,
   onAccept,
   onReject,
@@ -44,13 +46,19 @@ const ReceivedOrderCard = ({
   onCancel,
 }: {
   order: Order;
+  onPress?: () => void;
   onCustomerPress: (customerId: number) => void;
   onAccept: () => void;
   onReject: () => void;
   onComplete: () => void;
   onCancel: () => void;
 }) => (
-  <View style={styles.card}>
+  <TouchableOpacity
+    style={styles.card}
+    onPress={onPress}
+    activeOpacity={onPress ? 0.8 : 1}
+    disabled={!onPress}
+  >
     <Image
       source={order.productImage ? { uri: order.productImage } : placeholder}
       style={styles.productImage}
@@ -76,6 +84,12 @@ const ReceivedOrderCard = ({
         <Text style={styles.label}>Quantity: </Text>
         <Text style={styles.value}>{order.quantity}</Text>
       </View>
+      {order.unitPrice > 0 && (
+        <View style={styles.row}>
+          <Text style={styles.label}>Total: </Text>
+          <Text style={styles.value}>{formatPrice(order.totalPrice)}</Text>
+        </View>
+      )}
       <View style={styles.row}>
         <Text style={styles.label}>Placed: </Text>
         <Text style={styles.value}>{formatDateTime(order.createdAt)}</Text>
@@ -121,7 +135,7 @@ const ReceivedOrderCard = ({
         order.status === "REJECTED" ||
         order.status === "CANCELLED") && <StatusBadge status={order.status} />}
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({

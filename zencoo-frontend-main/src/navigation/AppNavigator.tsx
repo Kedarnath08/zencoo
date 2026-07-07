@@ -5,7 +5,7 @@ import FeedStack from "./FeedStack";
 import BottomNavBar from "../components/BottomNavBar";
 import ProfileStack from "./ProfileStack";
 import PostStack from "./PostStack";
-import Orders from "../screens/Orders";
+import OrdersStack from "./OrdersStack";
 
 // Update tab param list
 export type AppTabParamList = {
@@ -28,7 +28,7 @@ export default function AppNavigator() {
       <Tab.Screen name="Feed" component={FeedStack} />
       <Tab.Screen name="Residents" component={ResidentsStack} />
       <Tab.Screen name="NewPost" component={PostStack} />
-      <Tab.Screen name="Orders" component={Orders} />
+      <Tab.Screen name="Orders" component={OrdersStack} />
       <Tab.Screen name="Myprofile" component={ProfileStack} />
     </Tab.Navigator>
   );

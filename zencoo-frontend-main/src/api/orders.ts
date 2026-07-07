@@ -12,6 +12,8 @@ export interface Order {
   productName: string;
   productImage: string | null;
   quantity: number;
+  unitPrice: number;
+  totalPrice: number;
   note: string | null;
   status: OrderStatus;
   buyerId: number;
@@ -27,6 +29,7 @@ export interface CreateOrderInput {
   productName: string;
   productImage?: string | null;
   quantity?: number;
+  price?: number | null;
   note?: string;
 }
 
@@ -37,6 +40,11 @@ export async function fetchPlacedOrders(): Promise<Order[]> {
 
 export async function fetchReceivedOrders(): Promise<Order[]> {
   const res = await api.get(`/orders/received`);
+  return res.data;
+}
+
+export async function fetchOrder(orderId: number): Promise<Order> {
+  const res = await api.get(`/orders/${orderId}`);
   return res.data;
 }
 

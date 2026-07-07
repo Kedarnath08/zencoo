@@ -25,6 +25,8 @@ import { createPost } from "../../api/posts";
 const PostPreviewScreen: React.FC = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const [price, setPrice] = useState("");
+  const [priceFocused, setPriceFocused] = useState(false);
   const [inputHeight, setInputHeight] = useState(60);
   const [captionFocused, setCaptionFocused] = useState(false); // <-- add this
   const [posting, setPosting] = useState(false);
@@ -62,12 +64,19 @@ const PostPreviewScreen: React.FC = () => {
 
   const handlePost = async () => {
     if (!imageUri || posting) return;
+    const trimmedPrice = price.trim();
+    const parsedPrice = trimmedPrice ? Number(trimmedPrice) : null;
+    if (trimmedPrice && (Number.isNaN(parsedPrice) || parsedPrice! < 0)) {
+      Alert.alert("Invalid price", "Enter a valid, non-negative price.");
+      return;
+    }
     setPosting(true);
     try {
       const imageUrl = await uploadImageToCloudinary(imageUri);
-      await createPost(imageUrl, caption.trim());
+      await createPost(imageUrl, caption.trim(), parsedPrice);
       setImageUri(null);
       setCaption("");
+      setPrice("");
       setInputHeight(60);
       navigation.navigate("Feed" as never); // Feed refreshes on focus
     } catch (err: any) {
@@ -198,6 +207,26 @@ const PostPreviewScreen: React.FC = () => {
                 )}
               </View>
             </View>
+
+            {/* Optional price — lists this post's item for sale */}
+            <View
+              style={[styles.priceRow, priceFocused && styles.priceRowFocused]}
+            >
+              <Text style={styles.priceSymbol}>₹</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Price (optional)"
+                value={price}
+                onChangeText={(text) => setPrice(text.replace(/[^0-9.]/g, ""))}
+                keyboardType="decimal-pad"
+                onFocus={() => setPriceFocused(true)}
+                onBlur={() => setPriceFocused(false)}
+              />
+            </View>
+            <Text style={styles.priceHint}>
+              Add a price to list this item for sale in Orders
+            </Text>
+
             <TouchableOpacity
               style={[
                 styles.postButton,
