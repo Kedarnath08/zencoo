@@ -1,9 +1,7 @@
 package com.zencoo.service;
 
 import com.zencoo.dto.OrderDto;
-import com.zencoo.model.Order;
-import com.zencoo.model.OrderStatus;
-import com.zencoo.model.User;
+import com.zencoo.model.*;
 import com.zencoo.repository.OrderRepository;
 import com.zencoo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +21,7 @@ public class OrderService {
 
     @Autowired private OrderRepository orderRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private NotificationService notificationService;
 
     @Transactional
     public OrderDto createOrder(Long buyerId, Long sellerId, String productName,
@@ -84,7 +83,53 @@ public class OrderService {
         }
 
         order.setStatus(target);
-        return toDto(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+
+        // Notify relevant parties based on status change
+        String title = "Order " + target;
+        String buyerMsg = null;
+        String sellerMsg = null;
+
+        switch (target) {
+            case ACCEPTED -> {
+                buyerMsg = "Your order for " + order.getProductName() + " was accepted";
+                sellerMsg = null; // Seller already knows they accepted it
+            }
+            case REJECTED -> {
+                buyerMsg = "Your order for " + order.getProductName() + " was rejected";
+                sellerMsg = null;
+            }
+            case COMPLETED -> {
+                buyerMsg = null; // Buyer already knows they completed/received
+                sellerMsg = "Order for " + order.getProductName() + " is complete";
+            }
+            case CANCELLED -> {
+                buyerMsg = current == OrderStatus.PENDING ? "Your order was cancelled" : null;
+                sellerMsg = "An order was cancelled";
+            }
+            default -> {}
+        }
+
+        if (buyerMsg != null) {
+            notificationService.createNotification(
+                    order.getBuyer().getId(),
+                    NotificationType.ORDER_STATUS,
+                    order.getId(),
+                    title,
+                    buyerMsg
+            );
+        }
+        if (sellerMsg != null) {
+            notificationService.createNotification(
+                    order.getSeller().getId(),
+                    NotificationType.ORDER_STATUS,
+                    order.getId(),
+                    title,
+                    sellerMsg
+            );
+        }
+
+        return toDto(savedOrder);
     }
 
     private static OrderStatus parseStatus(String statusStr) {

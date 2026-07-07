@@ -2,10 +2,7 @@ package com.zencoo.service;
 
 import com.zencoo.dto.CommentDto;
 import com.zencoo.dto.PostDto;
-import com.zencoo.model.Post;
-import com.zencoo.model.PostComment;
-import com.zencoo.model.PostLike;
-import com.zencoo.model.User;
+import com.zencoo.model.*;
 import com.zencoo.repository.PostCommentRepository;
 import com.zencoo.repository.PostLikeRepository;
 import com.zencoo.repository.PostRepository;
@@ -29,6 +26,7 @@ public class PostService {
     @Autowired private PostLikeRepository postLikeRepository;
     @Autowired private PostCommentRepository postCommentRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private NotificationService notificationService;
 
     @Transactional
     public PostDto createPost(Long userId, String imageUrl, String caption) {
@@ -81,6 +79,15 @@ public class PostService {
         } else {
             User user = userRepository.getReferenceById(userId);
             postLikeRepository.save(new PostLike(post, user));
+            if (!post.getUser().getId().equals(userId)) {
+                notificationService.createNotification(
+                        post.getUser().getId(),
+                        NotificationType.LIKE,
+                        postId,
+                        "New like",
+                        user.getUsername() + " liked your post"
+                );
+            }
         }
         return toDto(post, userId);
     }
@@ -102,6 +109,15 @@ public class PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         PostComment comment = postCommentRepository.save(new PostComment(post, user, text));
+        if (!post.getUser().getId().equals(userId)) {
+            notificationService.createNotification(
+                    post.getUser().getId(),
+                    NotificationType.COMMENT,
+                    postId,
+                    "New comment",
+                    user.getUsername() + " commented on your post"
+            );
+        }
         return toCommentDto(comment);
     }
 

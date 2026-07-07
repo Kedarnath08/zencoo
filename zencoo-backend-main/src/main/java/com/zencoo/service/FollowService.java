@@ -1,8 +1,7 @@
 package com.zencoo.service;
 
 import com.zencoo.dto.ResidentDto;
-import com.zencoo.model.Follow;
-import com.zencoo.model.User;
+import com.zencoo.model.*;
 import com.zencoo.repository.FollowRepository;
 import com.zencoo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +18,7 @@ public class FollowService {
 
     @Autowired private FollowRepository followRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private NotificationService notificationService;
 
     /** Current user follows the target. Idempotent. */
     @Transactional
@@ -35,6 +35,14 @@ public class FollowService {
         User follower = userRepository.getReferenceById(followerId);
         User target = userRepository.getReferenceById(targetId);
         followRepository.save(new Follow(follower, target));
+
+        notificationService.createNotification(
+                targetId,
+                NotificationType.FOLLOW,
+                followerId,
+                "New follower",
+                follower.getUsername() + " started following you"
+        );
     }
 
     /** Current user unfollows the target. Idempotent. */

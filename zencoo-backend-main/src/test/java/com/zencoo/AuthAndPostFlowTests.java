@@ -10,10 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -361,5 +358,98 @@ class AuthAndPostFlowTests {
                         .header("Authorization", bearer(sellerToken))
                         .contentType(MediaType.APPLICATION_JSON).content(cancel))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void notificationsTriggeredByPostLikeCommentFollowAndOrderStatus() throws Exception {
+        String aliceToken = registerAndGetToken("alicen@example.com", "@alicen");
+        long aliceId = myId(aliceToken);
+        String bobToken = registerAndGetToken("bobn@example.com", "@bobn");
+        long bobId = myId(bobToken);
+
+        // Alice creates a post.
+        String postBody = mapper.createObjectNode()
+                .put("imageUrl", "https://example.com/pic.webp")
+                .put("caption", "My post").toString();
+        String postResp = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", bearer(aliceToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long postId = mapper.readTree(postResp).get("id").asLong();
+
+        // Alice has no notifications yet.
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(0));
+
+        // Bob likes Alice's post — notification created for Alice.
+        mockMvc.perform(post("/api/posts/" + postId + "/like").header("Authorization", bearer(bobToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(1));
+
+        // Bob comments on Alice's post — another notification.
+        String commentBody = mapper.createObjectNode().put("text", "Nice!").toString();
+        mockMvc.perform(post("/api/posts/" + postId + "/comments")
+                        .header("Authorization", bearer(bobToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(commentBody))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(2));
+
+        // Alice sees her notifications list (most recent first).
+        String notifResp = mockMvc.perform(get("/api/notifications").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andReturn().getResponse().getContentAsString();
+        long notifId1 = mapper.readTree(notifResp).get(0).get("id").asLong();
+
+        // Alice marks the first notification as read.
+        mockMvc.perform(put("/api/notifications/" + notifId1 + "/read")
+                        .header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(1));
+
+        // Bob follows Alice — notification for Alice.
+        mockMvc.perform(post("/api/users/" + aliceId + "/follow")
+                        .header("Authorization", bearer(bobToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(2));
+
+        // Bob places an order from Alice (who created the post; Alice = seller).
+        String orderBody = mapper.createObjectNode()
+                .put("sellerId", aliceId)
+                .put("productName", "My post's item")
+                .put("quantity", 1).toString();
+        String orderResp = mockMvc.perform(post("/api/orders")
+                        .header("Authorization", bearer(bobToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(orderBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long orderId = mapper.readTree(orderResp).get("id").asLong();
+
+        // Alice (seller) accepts the order — Bob (buyer) gets a notification.
+        String accept = mapper.createObjectNode().put("status", "ACCEPTED").toString();
+        mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+                        .header("Authorization", bearer(aliceToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(accept))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(bobToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(1)); // Bob gets the ACCEPTED notification.
+
+        // Author liking/commenting on own post does not generate notifications.
+        mockMvc.perform(post("/api/posts/" + postId + "/like").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", bearer(aliceToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(2)); // Still 2, no self-notification.
     }
 }
