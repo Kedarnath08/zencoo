@@ -7,6 +7,7 @@ import com.zencoo.model.User;
 import com.zencoo.repository.PostRepository;
 import com.zencoo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +28,9 @@ public class ResidentService {
      * wing (derived from the first character of the door number).
      */
     @Transactional(readOnly = true)
-    public List<ResidentDto> getResidents(Long currentUserId, String wing) {
-        return userRepository.findAll().stream()
-                .filter(u -> !u.getId().equals(currentUserId))
-                .filter(u -> wing == null || wing.isBlank() || wing.equals(ResidentMapper.wingOf(u.getDoorNumber())))
+    public List<ResidentDto> getResidents(Long currentUserId, String wing, int page, int size) {
+        return userRepository.findResidents(currentUserId, wing, PageRequest.of(page, size))
+                .stream()
                 .map(ResidentMapper::toResidentDto)
                 .collect(Collectors.toList());
     }

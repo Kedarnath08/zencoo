@@ -5,6 +5,7 @@ import com.zencoo.model.*;
 import com.zencoo.repository.OrderRepository;
 import com.zencoo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,15 +61,15 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderDto> getPlacedOrders(Long buyerId) {
-        return orderRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId).stream()
-                .map(this::toDto).collect(Collectors.toList());
+    public List<OrderDto> getPlacedOrders(Long buyerId, int page, int size) {
+        return orderRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId, PageRequest.of(page, size))
+                .stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<OrderDto> getReceivedOrders(Long sellerId) {
-        return orderRepository.findBySellerIdOrderByCreatedAtDesc(sellerId).stream()
-                .map(this::toDto).collect(Collectors.toList());
+    public List<OrderDto> getReceivedOrders(Long sellerId, int page, int size) {
+        return orderRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, PageRequest.of(page, size))
+                .stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Transactional

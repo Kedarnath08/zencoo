@@ -517,4 +517,178 @@ class AuthAndPostFlowTests {
         mockMvc.perform(get("/api/orders/999999").header("Authorization", bearer(buyerToken)))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void residentsDirectoryWingFilterMatchesOnlyThatWing() throws Exception {
+        String viewerToken = registerAndGetToken("wingviewer@example.com", "@wingviewer");
+
+        String wing2Body = mapper.createObjectNode()
+                .put("email", "wing2@example.com")
+                .put("username", "@wing2resident")
+                .put("password", "secret123")
+                .put("fullName", "Wing Two")
+                .put("doorNumber", "2205")
+                .put("community", "Test Community")
+                .toString();
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON).content(wing2Body))
+                .andExpect(status().isOk());
+
+        String wing3Body = mapper.createObjectNode()
+                .put("email", "wing3@example.com")
+                .put("username", "@wing3resident")
+                .put("password", "secret123")
+                .put("fullName", "Wing Three")
+                .put("doorNumber", "3310")
+                .put("community", "Test Community")
+                .toString();
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON).content(wing3Body))
+                .andExpect(status().isOk());
+
+        // Filtering by wing=2 returns only the wing-2 resident (viewer is wing 1, excluded anyway).
+        mockMvc.perform(get("/api/residents").param("wing", "2")
+                        .header("Authorization", bearer(viewerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].username").value("wing2resident"))
+                .andExpect(jsonPath("$[0].wing").value("2"));
+
+        // No wing filter returns everyone except the viewer.
+        mockMvc.perform(get("/api/residents")
+                        .header("Authorization", bearer(viewerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
+    void residentsDirectoryIsPaginated() throws Exception {
+        String viewerToken = registerAndGetToken("pageviewer@example.com", "@pageviewer");
+        registerAndGetToken("pageresident1@example.com", "@pageresident1");
+        registerAndGetToken("pageresident2@example.com", "@pageresident2");
+        registerAndGetToken("pageresident3@example.com", "@pageresident3");
+
+        // 3 residents exist (besides the viewer); page size 2 -> 2, then 1, then 0.
+        mockMvc.perform(get("/api/residents").param("page", "0").param("size", "2")
+                        .header("Authorization", bearer(viewerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+        mockMvc.perform(get("/api/residents").param("page", "1").param("size", "2")
+                        .header("Authorization", bearer(viewerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+        mockMvc.perform(get("/api/residents").param("page", "2").param("size", "2")
+                        .header("Authorization", bearer(viewerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void feedIsPaginated() throws Exception {
+        String token = registerAndGetToken("feedpager@example.com", "@feedpager");
+        for (int i = 0; i < 3; i++) {
+            String postBody = mapper.createObjectNode()
+                    .put("imageUrl", "https://example.com/pic" + i + ".webp")
+                    .put("caption", "Post " + i).toString();
+            mockMvc.perform(post("/api/posts")
+                            .header("Authorization", bearer(token))
+                            .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                    .andExpect(status().isCreated());
+        }
+
+        // Newest first: page 0 has the 2 most recent, page 1 has the oldest one.
+        String page0 = mockMvc.perform(get("/api/posts").param("page", "0").param("size", "2")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].caption").value("Post 2"))
+                .andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(page0).doesNotContain("\"caption\":\"Post 0\"");
+
+        mockMvc.perform(get("/api/posts").param("page", "1").param("size", "2")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].caption").value("Post 0"));
+
+        mockMvc.perform(get("/api/posts").param("page", "2").param("size", "2")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void commentsArePaginated() throws Exception {
+        String token = registerAndGetToken("commentpager@example.com", "@commentpager");
+        String postBody = mapper.createObjectNode()
+                .put("imageUrl", "https://example.com/pic.webp")
+                .put("caption", "Commentable post").toString();
+        String postResp = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long postId = mapper.readTree(postResp).get("id").asLong();
+
+        for (int i = 0; i < 3; i++) {
+            String commentBody = mapper.createObjectNode().put("text", "Comment " + i).toString();
+            mockMvc.perform(post("/api/posts/" + postId + "/comments")
+                            .header("Authorization", bearer(token))
+                            .contentType(MediaType.APPLICATION_JSON).content(commentBody))
+                    .andExpect(status().isCreated());
+        }
+
+        // Oldest first: page 0 has the 2 oldest, page 1 has the newest one.
+        mockMvc.perform(get("/api/posts/" + postId + "/comments").param("page", "0").param("size", "2")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].text").value("Comment 0"));
+
+        mockMvc.perform(get("/api/posts/" + postId + "/comments").param("page", "1").param("size", "2")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].text").value("Comment 2"));
+    }
+
+    @Test
+    void ordersArePaginated() throws Exception {
+        String sellerToken = registerAndGetToken("pagerseller@example.com", "@pagerseller");
+        long sellerId = myId(sellerToken);
+        String buyerToken = registerAndGetToken("pagerbuyer@example.com", "@pagerbuyer");
+
+        for (int i = 0; i < 3; i++) {
+            String orderBody = mapper.createObjectNode()
+                    .put("sellerId", sellerId)
+                    .put("productName", "Item " + i)
+                    .put("quantity", 1).toString();
+            mockMvc.perform(post("/api/orders")
+                            .header("Authorization", bearer(buyerToken))
+                            .contentType(MediaType.APPLICATION_JSON).content(orderBody))
+                    .andExpect(status().isCreated());
+        }
+
+        // Placed orders, newest first: page 0 has 2, page 1 has 1.
+        mockMvc.perform(get("/api/orders/placed").param("page", "0").param("size", "2")
+                        .header("Authorization", bearer(buyerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].productName").value("Item 2"));
+        mockMvc.perform(get("/api/orders/placed").param("page", "1").param("size", "2")
+                        .header("Authorization", bearer(buyerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].productName").value("Item 0"));
+
+        // Received orders (seller's view) are paginated the same way.
+        mockMvc.perform(get("/api/orders/received").param("page", "0").param("size", "2")
+                        .header("Authorization", bearer(sellerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+        mockMvc.perform(get("/api/orders/received").param("page", "1").param("size", "2")
+                        .header("Authorization", bearer(sellerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+    }
 }

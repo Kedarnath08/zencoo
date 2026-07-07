@@ -16,10 +16,12 @@ public class ResidentController {
     @GetMapping
     public ResponseEntity<?> getResidents(
             @AuthenticationPrincipal(expression = "id") Long userId,
-            @RequestParam(required = false) String wing
+            @RequestParam(required = false) String wing,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
         if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
-        return ResponseEntity.ok(residentService.getResidents(userId, wing));
+        return ResponseEntity.ok(residentService.getResidents(userId, wing, page, size));
     }
 
     @GetMapping("/{id}")

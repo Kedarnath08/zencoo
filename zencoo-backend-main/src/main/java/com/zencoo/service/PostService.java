@@ -8,6 +8,8 @@ import com.zencoo.repository.PostLikeRepository;
 import com.zencoo.repository.PostRepository;
 import com.zencoo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -48,8 +50,9 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostDto> getFeed(Long currentUserId) {
-        return toDtoList(postRepository.findAllByOrderByCreatedAtDesc(), currentUserId);
+    public List<PostDto> getFeed(Long currentUserId, int page, int size) {
+        Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+        return toDtoList(posts.getContent(), currentUserId);
     }
 
     @Transactional(readOnly = true)
@@ -93,11 +96,13 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentDto> getComments(Long postId) {
+    public List<CommentDto> getComments(Long postId, int page, int size) {
         if (!postRepository.existsById(postId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
         }
-        return postCommentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()
+        Page<PostComment> comments = postCommentRepository.findByPostIdOrderByCreatedAtAsc(
+                postId, PageRequest.of(page, size));
+        return comments.getContent().stream()
                 .map(this::toCommentDto)
                 .collect(Collectors.toList());
     }

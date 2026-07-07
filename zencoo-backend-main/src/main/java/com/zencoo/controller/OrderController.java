@@ -19,15 +19,23 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping("/placed")
-    public ResponseEntity<?> getPlaced(@AuthenticationPrincipal(expression = "id") Long userId) {
+    public ResponseEntity<?> getPlaced(
+            @AuthenticationPrincipal(expression = "id") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
-        return ResponseEntity.ok(orderService.getPlacedOrders(userId));
+        return ResponseEntity.ok(orderService.getPlacedOrders(userId, page, size));
     }
 
     @GetMapping("/received")
-    public ResponseEntity<?> getReceived(@AuthenticationPrincipal(expression = "id") Long userId) {
+    public ResponseEntity<?> getReceived(
+            @AuthenticationPrincipal(expression = "id") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
-        return ResponseEntity.ok(orderService.getReceivedOrders(userId));
+        return ResponseEntity.ok(orderService.getReceivedOrders(userId, page, size));
     }
 
     @GetMapping("/{orderId}")

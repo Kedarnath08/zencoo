@@ -22,9 +22,13 @@ public class PostController {
     private PostService postService;
 
     @GetMapping
-    public ResponseEntity<?> getFeed(@AuthenticationPrincipal(expression = "id") Long userId) {
+    public ResponseEntity<?> getFeed(
+            @AuthenticationPrincipal(expression = "id") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
-        return ResponseEntity.ok(postService.getFeed(userId));
+        return ResponseEntity.ok(postService.getFeed(userId, page, size));
     }
 
     @GetMapping("/{postId}")
@@ -78,10 +82,12 @@ public class PostController {
     @GetMapping("/{postId}/comments")
     public ResponseEntity<?> getComments(
             @AuthenticationPrincipal(expression = "id") Long userId,
-            @PathVariable Long postId
+            @PathVariable Long postId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
         if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
-        List<CommentDto> comments = postService.getComments(postId);
+        List<CommentDto> comments = postService.getComments(postId, page, size);
         return ResponseEntity.ok(comments);
     }
 
