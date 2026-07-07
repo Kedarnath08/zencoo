@@ -33,6 +33,7 @@ import { fetchUnreadCount } from "../api/notifications";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/FeedStack";
 import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
+import { usePaginatedList } from "../hooks/usePaginatedList";
 import { colors } from "../theme/colors";
 import LoadingView from "../components/LoadingView";
 
@@ -44,12 +45,31 @@ const FeedScreen: React.FC = () => {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState<boolean>(false);
   const [postingComment, setPostingComment] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const insets = useSafeAreaInsets();
+
+  const loadFeedPage = useCallback(async (page: number, size: number) => {
+    try {
+      const data = await fetchFeed(page, size);
+      setError(null);
+      return data;
+    } catch (err) {
+      setError("Couldn't load the feed. Pull down to retry.");
+      throw err;
+    }
+  }, []);
+
+  const {
+    items: posts,
+    setItems: setPosts,
+    loading,
+    refreshing,
+    loadingMore,
+    hasMore,
+    reset,
+    loadMore,
+  } = usePaginatedList<FeedPost>(loadFeedPage, 20);
 
   // Load unread notification count on focus
   useFocusEffect(
@@ -69,23 +89,8 @@ const FeedScreen: React.FC = () => {
     }, [])
   );
 
-  const loadFeed = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const data = await fetchFeed();
-      setPosts(data);
-      setError(null);
-    } catch (err) {
-      setError("Couldn't load the feed. Pull down to retry.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   // Refresh whenever the tab regains focus (e.g. after creating a post).
-  useRefreshOnFocus(loadFeed);
+  useRefreshOnFocus(reset);
 
   const handleToggleLike = async (postId: number) => {
     // Optimistic update
@@ -278,7 +283,12 @@ const FeedScreen: React.FC = () => {
         contentContainerStyle={getFeedContainerStyle(insets.bottom)}
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
-        onRefresh={() => loadFeed(true)}
+        onRefresh={reset}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? <LoadingView color="#FFA500" style={{ marginVertical: 16 }} /> : null
+        }
         ListEmptyComponent={
           <View style={styles.centered}>
             <Text style={{ color: "#888", marginTop: 40 }}>

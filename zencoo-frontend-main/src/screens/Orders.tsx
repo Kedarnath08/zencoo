@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -16,6 +16,7 @@ import {
   type OrderStatus,
 } from "../api/orders";
 import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
+import { usePaginatedList } from "../hooks/usePaginatedList";
 import LoadingView from "../components/LoadingView";
 
 // Sort received orders: PENDING first, then ACCEPTED, then the rest; newest first within a group.
@@ -29,26 +30,57 @@ const Orders = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<OrdersStackParamList>>();
   const [activeTab, setActiveTab] = useState<"placed" | "received">("placed");
-  const [placed, setPlaced] = useState<Order[]>([]);
-  const [received, setReceived] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
 
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
+  // Tracks whether either list's fetch failed during the current loadOrders() call,
+  // so we show one combined alert instead of one per list (matching prior behavior).
+  const hadErrorRef = useRef(false);
+
+  const fetchPlacedPage = useCallback(async (page: number, size: number) => {
     try {
-      const [p, r] = await Promise.all([
-        fetchPlacedOrders(),
-        fetchReceivedOrders(),
-      ]);
-      setPlaced(p);
-      setReceived(r);
+      return await fetchPlacedOrders(page, size);
     } catch (err) {
-      Alert.alert("Couldn't load orders. Please try again.");
-    } finally {
-      setLoading(false);
+      hadErrorRef.current = true;
+      throw err;
     }
   }, []);
+
+  const fetchReceivedPage = useCallback(async (page: number, size: number) => {
+    try {
+      return await fetchReceivedOrders(page, size);
+    } catch (err) {
+      hadErrorRef.current = true;
+      throw err;
+    }
+  }, []);
+
+  const {
+    items: placed,
+    setItems: setPlaced,
+    loading: loadingPlaced,
+    loadingMore: loadingMorePlaced,
+    reset: resetPlaced,
+    loadMore: loadMorePlaced,
+  } = usePaginatedList<Order>(fetchPlacedPage, 20);
+
+  const {
+    items: received,
+    setItems: setReceived,
+    loading: loadingReceived,
+    loadingMore: loadingMoreReceived,
+    reset: resetReceived,
+    loadMore: loadMoreReceived,
+  } = usePaginatedList<Order>(fetchReceivedPage, 20);
+
+  const loading = loadingPlaced || loadingReceived;
+
+  const loadOrders = useCallback(async () => {
+    hadErrorRef.current = false;
+    await Promise.all([resetPlaced(), resetReceived()]);
+    if (hadErrorRef.current) {
+      Alert.alert("Couldn't load orders. Please try again.");
+    }
+  }, [resetPlaced, resetReceived]);
 
   useRefreshOnFocus(loadOrders);
 
@@ -119,6 +151,11 @@ const Orders = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No placed orders.</Text>
         }
+        onEndReached={loadMorePlaced}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMorePlaced ? <LoadingView style={{ marginVertical: 16 }} /> : null
+        }
         showsVerticalScrollIndicator={false}
       />
     );
@@ -158,6 +195,11 @@ const Orders = () => {
         ]}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No received orders.</Text>
+        }
+        onEndReached={loadMoreReceived}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMoreReceived ? <LoadingView style={{ marginVertical: 16 }} /> : null
         }
         showsVerticalScrollIndicator={false}
       />

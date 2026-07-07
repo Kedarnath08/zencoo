@@ -30,9 +30,13 @@ export interface ResidentProfile {
   posts: PostSummary[];
 }
 
-export async function fetchResidents(wing?: string): Promise<Resident[]> {
+export async function fetchResidents(
+  wing?: string,
+  page = 0,
+  size = 20
+): Promise<Resident[]> {
   const res = await api.get(`/residents`, {
-    params: wing ? { wing } : undefined,
+    params: { wing: wing || undefined, page, size },
   });
   return res.data;
 }

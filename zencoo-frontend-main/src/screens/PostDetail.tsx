@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { timeAgo } from "../utils/time";
 import Avatar from "../components/Avatar";
 import ScreenHeader from "../components/ScreenHeader";
 import LoadingView from "../components/LoadingView";
+import { usePaginatedList } from "../hooks/usePaginatedList";
 
 type PostDetailParams = {
   postId: number;
@@ -44,27 +45,48 @@ const PostDetail: React.FC = () => {
   const insets = useSafeAreaInsets();
 
   const [post, setPost] = useState<FeedPost | null>(null);
-  const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
   const [posting, setPosting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Tracks whether the comments fetch failed during the current load(), so the
+  // whole screen falls back to "not available" — matching the prior behavior
+  // where a single Promise.all covered both the post and its comments.
+  const commentsErrorRef = useRef(false);
+
+  const fetchCommentsPage = useCallback(
+    async (page: number, size: number) => {
+      try {
+        return await fetchComments(postId, page, size);
+      } catch (err) {
+        commentsErrorRef.current = true;
+        throw err;
+      }
+    },
+    [postId]
+  );
+
+  const {
+    items: comments,
+    setItems: setComments,
+    loadingMore: loadingMoreComments,
+    reset: resetComments,
+    loadMore: loadMoreComments,
+  } = usePaginatedList<PostComment>(fetchCommentsPage, 20);
+
   const load = useCallback(async () => {
     setLoading(true);
+    commentsErrorRef.current = false;
     try {
-      const [postData, commentData] = await Promise.all([
-        fetchPost(postId),
-        fetchComments(postId),
-      ]);
-      setPost(postData);
-      setComments(commentData);
+      const [postData] = await Promise.all([fetchPost(postId), resetComments()]);
+      setPost(commentsErrorRef.current ? null : postData);
     } catch {
       setPost(null);
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [postId, resetComments]);
 
   useEffect(() => {
     load();
@@ -245,6 +267,11 @@ const PostDetail: React.FC = () => {
           <Text style={{ textAlign: "center", color: "#888", marginTop: 8 }}>
             No comments yet. Be the first!
           </Text>
+        }
+        onEndReached={loadMoreComments}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMoreComments ? <LoadingView color="#FFA500" style={{ marginVertical: 16 }} /> : null
         }
       />
 

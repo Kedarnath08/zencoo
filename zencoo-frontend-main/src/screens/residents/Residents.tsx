@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Text, TextInput, FlatList } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -9,6 +9,7 @@ import { fetchResidents, type Resident } from "../../api/residents";
 import ScreenHeader from "../../components/ScreenHeader";
 import ResidentListItem from "../../components/ResidentListItem";
 import LoadingView from "../../components/LoadingView";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
 
 const NAV_HEIGHT = 64;
 
@@ -28,28 +29,19 @@ const Residents = () => {
 
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-  const [residents, setResidents] = useState<Resident[]>([]);
-  const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
 
   // Load residents for the selected wing from the backend.
+  const fetchResidentsPage = useCallback(
+    (page: number, size: number) => fetchResidents(wing.value, page, size),
+    [wing.value]
+  );
+  const { items: residents, loading, loadingMore, hasMore, reset, loadMore } =
+    usePaginatedList<Resident>(fetchResidentsPage, 20);
+
   useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchResidents(wing.value);
-        if (active) setResidents(data);
-      } catch (err) {
-        if (active) setResidents([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [wing.value]);
+    reset();
+  }, [reset]);
 
   // 3. Type the filter callback
   const filteredResidents = residents.filter(
@@ -122,6 +114,11 @@ const Residents = () => {
               ) : (
                 <Text style={styles.noResults}>No residents found.</Text>
               )
+            }
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? <LoadingView style={{ marginVertical: 16 }} /> : null
             }
             showsVerticalScrollIndicator={false}
           />

@@ -33,13 +33,13 @@ export interface CreateOrderInput {
   note?: string;
 }
 
-export async function fetchPlacedOrders(): Promise<Order[]> {
-  const res = await api.get(`/orders/placed`);
+export async function fetchPlacedOrders(page = 0, size = 20): Promise<Order[]> {
+  const res = await api.get(`/orders/placed`, { params: { page, size } });
   return res.data;
 }
 
-export async function fetchReceivedOrders(): Promise<Order[]> {
-  const res = await api.get(`/orders/received`);
+export async function fetchReceivedOrders(page = 0, size = 20): Promise<Order[]> {
+  const res = await api.get(`/orders/received`, { params: { page, size } });
   return res.data;
 }
 

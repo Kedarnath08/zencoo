@@ -25,8 +25,8 @@ export interface PostComment {
   createdAt: string;
 }
 
-export async function fetchFeed(): Promise<FeedPost[]> {
-  const res = await api.get(`/posts`);
+export async function fetchFeed(page = 0, size = 20): Promise<FeedPost[]> {
+  const res = await api.get(`/posts`, { params: { page, size } });
   return res.data;
 }
 
@@ -58,8 +58,12 @@ export async function toggleLike(postId: number): Promise<FeedPost> {
   return res.data;
 }
 
-export async function fetchComments(postId: number): Promise<PostComment[]> {
-  const res = await api.get(`/posts/${postId}/comments`);
+export async function fetchComments(
+  postId: number,
+  page = 0,
+  size = 20
+): Promise<PostComment[]> {
+  const res = await api.get(`/posts/${postId}/comments`, { params: { page, size } });
   return res.data;
 }
 
