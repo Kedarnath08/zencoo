@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -13,6 +12,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { fetchNotifications, markAsRead, Notification } from "../api/notifications";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/FeedStack";
+import ScreenHeader from "../components/ScreenHeader";
+import LoadingView from "../components/LoadingView";
+import EmptyState from "../components/EmptyState";
 
 type NavigationProp = NativeStackNavigationProp<FeedStackParamList>;
 
@@ -68,20 +70,19 @@ const NotificationsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF8C00" />
+        <LoadingView />
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#444" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Notifications</Text>
-        <View style={{ width: 28 }} />
-      </View>
+      <ScreenHeader
+        title="Notifications"
+        onBack={() => navigation.goBack()}
+        style={styles.header}
+        titleStyle={styles.title}
+      />
 
       <FlatList
         data={notifications}
@@ -123,10 +124,12 @@ const NotificationsScreen: React.FC = () => {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off" size={48} color="#CCC" />
-            <Text style={styles.emptyText}>No notifications yet</Text>
-          </View>
+          <EmptyState
+            icon={<Ionicons name="notifications-off" size={48} color="#CCC" />}
+            message="No notifications yet"
+            style={styles.emptyContainer}
+            textStyle={styles.emptyText}
+          />
         }
         contentContainerStyle={styles.listContent}
         scrollEnabled

@@ -1,13 +1,6 @@
 import React, { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { OrdersStackParamList } from "../navigation/OrdersStack";
 import styles from "../styles/ordersStyles";
@@ -22,6 +15,8 @@ import {
   type Order,
   type OrderStatus,
 } from "../api/orders";
+import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
+import LoadingView from "../components/LoadingView";
 
 // Sort received orders: PENDING first, then ACCEPTED, then the rest; newest first within a group.
 const receivedStatusRank = (status: OrderStatus) => {
@@ -55,11 +50,7 @@ const Orders = () => {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadOrders();
-    }, [loadOrders])
-  );
+  useRefreshOnFocus(loadOrders);
 
   const applyUpdated = (updated: Order) => {
     setPlaced((prev) =>
@@ -219,11 +210,7 @@ const Orders = () => {
       {/* Content */}
       <View style={{ flex: 1 }}>
         {loading ? (
-          <ActivityIndicator
-            size="large"
-            color="#FF8C00"
-            style={{ marginTop: 32 }}
-          />
+          <LoadingView style={{ marginTop: 32 }} />
         ) : activeTab === "placed" ? (
           renderPlaced()
         ) : (

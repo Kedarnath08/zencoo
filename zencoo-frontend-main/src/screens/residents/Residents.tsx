@@ -1,20 +1,14 @@
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, TextInput, FlatList } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ResidentsStackParamList } from "../../navigation/ResidentsStack";
 import styles from "../../styles/residentsStyles";
 import { fetchResidents, type Resident } from "../../api/residents";
+import ScreenHeader from "../../components/ScreenHeader";
+import ResidentListItem from "../../components/ResidentListItem";
+import LoadingView from "../../components/LoadingView";
 
 const NAV_HEIGHT = 64;
 
@@ -72,20 +66,14 @@ const Residents = () => {
   return (
     <View style={styles.container}>
       {/* Full-width, full-top header with shadow */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top, height: headerHeight },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="arrow-back" size={28} color="#444" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{wing.label}</Text>
-      </View>
+      <ScreenHeader
+        title={wing.label}
+        onBack={() => navigation.goBack()}
+        style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
+        titleStyle={styles.headerTitle}
+        backButtonStyle={styles.backBtn}
+        right={null}
+      />
       {/* Main content, padded below header */}
       <View
         style={{
@@ -117,38 +105,20 @@ const Residents = () => {
               paddingBottom: insets.bottom + NAV_HEIGHT + 12,
             }}
             renderItem={({ item }) => (
-              <TouchableOpacity
+              <ResidentListItem
+                displayName={item.displayName}
+                username={item.username}
+                wing={item.wing}
+                door={item.door}
+                profilePic={item.profilePic}
                 onPress={() =>
                   navigation.push("OthersProfile", { id: String(item.id) })
                 }
-                activeOpacity={0.7}
-              >
-                <View style={styles.residentRow}>
-                  <Image
-                    source={
-                      item.profilePic
-                        ? { uri: item.profilePic }
-                        : require("../../../assets/images/profile-placeholder.jpg")
-                    }
-                    style={styles.avatar}
-                  />
-                  <View style={styles.info}>
-                    <Text style={styles.name}>{item.displayName}</Text>
-                    <Text style={styles.username}>@{item.username}</Text>
-                    <Text style={styles.subInfo}>
-                      Wing {item.wing} • Door {item.door}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+              />
             )}
             ListEmptyComponent={
               loading ? (
-                <ActivityIndicator
-                  size="large"
-                  color="#FF8C00"
-                  style={{ marginTop: 32 }}
-                />
+                <LoadingView style={{ marginTop: 32 }} />
               ) : (
                 <Text style={styles.noResults}>No residents found.</Text>
               )

@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../../styles/signupStyles";
+import AuthLogo from "../../components/auth/AuthLogo";
+import BackArrowButton from "../../components/auth/BackArrowButton";
+import LoginFooterLink from "../../components/auth/LoginFooterLink";
+import FormField from "../../components/auth/FormField";
 
 const PasswordSchema = Yup.object().shape({
   password: Yup.string()
@@ -27,20 +31,8 @@ export default function SignUpStepTwo({ navigation, route }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Go Back Arrow */}
-      <TouchableOpacity
-        style={{ position: "absolute", top: 48, left: 16, zIndex: 10 }}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={28} color="#222" />
-      </TouchableOpacity>
-      {/* Logo */}
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../../../assets/images/zencoo.png")}
-          style={{ width: 210, height: 70, resizeMode: "contain" }}
-        />
-      </View>
+      <BackArrowButton onPress={() => navigation.goBack()} />
+      <AuthLogo containerStyle={styles.logoContainer} />
       <Text
         style={{
           fontSize: 20,
@@ -78,18 +70,16 @@ export default function SignUpStepTwo({ navigation, route }: any) {
           <>
             {/* Create Password */}
             <View style={{ position: "relative", marginBottom: 8, height: 48 }}>
-              <TextInput
+              <FormField
                 placeholder="Create Password"
-                style={[
-                  styles.input,
-                  { paddingRight: 40 }, // leave space for the icon
-                  focusedInput === "password" && styles.inputFocused,
-                ]}
+                focused={focusedInput === "password"}
+                showError={false}
+                styles={styles}
+                style={{ paddingRight: 40 }}
                 value={values.password}
                 onChangeText={handleChange("password")}
                 onBlur={handleBlur("password")}
                 secureTextEntry={!showPassword}
-                placeholderTextColor="#888"
                 onFocus={() => setFocusedInput("password")}
               />
               <TouchableOpacity
@@ -119,18 +109,16 @@ export default function SignUpStepTwo({ navigation, route }: any) {
 
             {/* Confirm Password */}
             <View style={{ position: "relative", marginBottom: 8, height: 48 }}>
-              <TextInput
+              <FormField
                 placeholder="Confirm Password"
-                style={[
-                  styles.input,
-                  { paddingRight: 40 },
-                  focusedInput === "confirmPassword" && styles.inputFocused,
-                ]}
+                focused={focusedInput === "confirmPassword"}
+                showError={false}
+                styles={styles}
+                style={{ paddingRight: 40 }}
                 value={values.confirmPassword}
                 onChangeText={handleChange("confirmPassword")}
                 onBlur={handleBlur("confirmPassword")}
                 secureTextEntry={!showConfirm}
-                placeholderTextColor="#888"
                 onFocus={() => setFocusedInput("confirmPassword")}
               />
               <TouchableOpacity
@@ -180,21 +168,10 @@ export default function SignUpStepTwo({ navigation, route }: any) {
               <Text style={styles.buttonText}>Next</Text>
             </TouchableOpacity>
 
-            {/* Already have an account? Login */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                marginTop: 32,
-              }}
-            >
-              <Text style={styles.bottomText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={[styles.bottomText, styles.bottomTextBold]}>
-                  Login
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <LoginFooterLink
+              onPress={() => navigation.navigate("Login")}
+              styles={styles}
+            />
           </>
         )}
       </Formik>

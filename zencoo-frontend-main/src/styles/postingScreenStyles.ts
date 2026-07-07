@@ -1,7 +1,8 @@
 import { StyleSheet } from "react-native";
+import { colors } from "../theme/colors";
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#e5ecf6" },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
     flexGrow: 1,
   },
@@ -15,7 +16,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
   selectButton: {
     width: 180,
     height: 54,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#ff9800",
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     flexDirection: "row",
   },
-  selectButtonText: { color: "#222", fontSize: 16, fontWeight: "bold" },
+  selectButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: "bold" },
   input: {
     width: "100%",
     minHeight: 60,
@@ -53,11 +54,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     fontSize: 18,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
   inputFocused: {
-    borderColor: "#FFA500",
-    shadowColor: "#FFA500",
+    borderColor: colors.primaryLight,
+    shadowColor: colors.primaryLight,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
     shadowRadius: 4,
@@ -66,14 +67,14 @@ const styles = StyleSheet.create({
   postButton: {
     width: "80%",
     height: 54,
-    backgroundColor: "#FF8C00",
+    backgroundColor: colors.primary,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     marginTop: "auto",
     marginBottom: 24,
   },
-  postButtonText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
+  postButtonText: { color: colors.white, fontSize: 20, fontWeight: "bold" },
   closeButton: {
     position: "absolute",
     top: 14,
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   closeButtonText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 20,
     fontWeight: "bold",
     lineHeight: 24,
@@ -95,10 +96,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
     paddingTop: 0,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#222",
+    color: colors.textPrimary,
     marginLeft: 6,
     letterSpacing: 0.5,
   },
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
   },
   plusBorder: {
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: colors.black,
     borderRadius: 22,
     width: 30,
     height: 30,
@@ -149,12 +150,12 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 12,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
   },
   priceRowFocused: {
-    borderColor: "#FFA500",
-    shadowColor: "#FFA500",
+    borderColor: colors.primaryLight,
+    shadowColor: colors.primaryLight,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
     shadowRadius: 4,
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   },
   priceSymbol: {
     fontSize: 18,
-    color: "#888",
+    color: colors.textSecondary,
     marginRight: 6,
   },
   priceInput: {

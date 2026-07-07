@@ -1,10 +1,11 @@
 import { StyleSheet } from "react-native";
+import { colors } from "../theme/colors";
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 24,
   },
   logoContainer: {
@@ -15,7 +16,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "bold",
     letterSpacing: 1,
-    color: "#222",
+    color: colors.textPrimary,
   },
   input: {
     height: 48,
@@ -25,32 +26,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     marginBottom: 18,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
   inputFocused: {
-    borderColor: "#FFA500",
-    shadowColor: "#FFA500",
+    borderColor: colors.primaryLight,
+    shadowColor: colors.primaryLight,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
     shadowRadius: 4,
     elevation: 3,
   },
   button: {
-    backgroundColor: "#ff8c00",
+    backgroundColor: colors.primary,
     borderRadius: 24,
     height: 48,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 8,
     marginBottom: 24,
-    shadowColor: "#FFA500",
+    shadowColor: colors.primaryLight,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 2,
   },
   buttonText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 18,
     fontWeight: "bold",
   },
@@ -58,12 +59,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bottomText: {
-    color: "#222",
+    color: colors.textPrimary,
     fontSize: 15,
   },
   bottomTextBold: {
     fontWeight: "bold",
-    color: "#222",
+    color: colors.textPrimary,
     textDecorationLine: "underline",
   },
   errorText: {

@@ -5,23 +5,23 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
-  FlatList,
   ScrollView,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ActivityIndicator } from "react-native";
 import { styles } from "../../styles/othersProfileStyles";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ResidentsStackParamList } from "../../navigation/ResidentsStack";
 import { fetchResident, type ResidentProfile } from "../../api/residents";
 import { followUser, unfollowUser } from "../../api/follow";
 import { Alert } from "react-native";
+import Avatar from "../../components/Avatar";
+import ProfileStatsRow from "../../components/ProfileStatsRow";
+import PostsGrid from "../../components/PostsGrid";
+import LoadingView from "../../components/LoadingView";
 const HEADER_HEIGHT = 200;
 Dimensions.get("window");
-
-const placeholderAvatar = require("../../../assets/images/profile-placeholder.jpg");
 
 const OthersProfileScreen: React.FC = () => {
   const navigation =
@@ -79,7 +79,7 @@ const OthersProfileScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color="#FF8C00" />
+        <LoadingView />
       </View>
     );
   }
@@ -120,14 +120,7 @@ const OthersProfileScreen: React.FC = () => {
         <View style={styles.profileRow}>
           <View style={styles.avatarColumn}>
             <View style={styles.avatarWrapper}>
-              <Image
-                source={
-                  profile.profilePic
-                    ? { uri: profile.profilePic }
-                    : placeholderAvatar
-                }
-                style={styles.avatar}
-              />
+              <Avatar uri={profile.profilePic} style={styles.avatar} />
             </View>
             <View style={styles.profileInfoFixed}>
               <Text style={styles.name}>{profile.displayName}</Text>
@@ -138,26 +131,17 @@ const OthersProfileScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-          <View style={styles.statsColumnFixed}>
-            <View style={styles.statsRowFixed}>
-              <TouchableOpacity
-                style={styles.statBoxFixed}
-                onPress={() =>
-                  navigation.navigate("FollowList", {
-                    userId: profile.id,
-                    initialTab: "followers",
-                  })
-                }
-              >
-                <Text style={styles.statNumber}>{profile.followersCount}</Text>
-                <Text style={styles.statLabel}>Followers</Text>
-              </TouchableOpacity>
-              <View style={styles.statBoxFixed}>
-                <Text style={styles.statNumber}>{profile.posts.length}</Text>
-                <Text style={styles.statLabel}>Posts</Text>
-              </View>
-            </View>
-          </View>
+          <ProfileStatsRow
+            followersCount={profile.followersCount}
+            postsCount={profile.posts.length}
+            onFollowersPress={() =>
+              navigation.navigate("FollowList", {
+                userId: profile.id,
+                initialTab: "followers",
+              })
+            }
+            styles={styles}
+          />
         </View>
         {/* Bio */}
         <View style={styles.bioContainer}>
@@ -200,25 +184,15 @@ const OthersProfileScreen: React.FC = () => {
 
       {/* Posts Section */}
       <View style={styles.postsSection}>
-        <FlatList
-          data={profile?.posts || []}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={3}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("PostDetail", { postId: item.id })
-              }
-            >
-              <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            <Text style={{ color: "#888", padding: 16 }}>No posts yet.</Text>
+        <PostsGrid
+          posts={profile?.posts || []}
+          onPressPost={(item) =>
+            navigation.navigate("PostDetail", { postId: item.id })
           }
-          scrollEnabled={false}
+          emptyMessage="No posts yet."
+          emptyTextStyle={{ color: "#888", padding: 16 }}
           contentContainerStyle={styles.postsGrid}
-          showsVerticalScrollIndicator={false}
+          styles={{ postImage: styles.postImage }}
         />
       </View>
     </ScrollView>

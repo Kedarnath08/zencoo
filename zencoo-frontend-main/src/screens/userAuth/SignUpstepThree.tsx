@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import styles from "../../styles/signupStyles";
-import { Ionicons } from "@expo/vector-icons";
 import { checkUsernameUnique, registerUser } from "../../api/user";
 import { useAuth } from "../../context/AuthContext";
+import AuthLogo from "../../components/auth/AuthLogo";
+import BackArrowButton from "../../components/auth/BackArrowButton";
+import LoginFooterLink from "../../components/auth/LoginFooterLink";
+import FormField from "../../components/auth/FormField";
 
 const UsernameSchema = Yup.string()
   .matches(/^@[a-zA-Z0-9_]{4,}$/, "Invalid username")
@@ -104,20 +100,8 @@ export default function SignUpStepThree({ route, navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Go Back Arrow */}
-      <TouchableOpacity
-        style={{ position: "absolute", top: 48, left: 16, zIndex: 10 }}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={28} color="#222" />
-      </TouchableOpacity>
-      {/* Logo */}
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../../../assets/images/zencoo.png")}
-          style={{ width: 210, height: 70, resizeMode: "contain" }}
-        />
-      </View>
+      <BackArrowButton onPress={() => navigation.goBack()} />
+      <AuthLogo containerStyle={styles.logoContainer} />
       <Text style={{ fontSize: 18, marginBottom: 16, textAlign: "center" }}>
         Pick your <Text style={{ fontWeight: "bold" }}>@username</Text>
       </Text>
@@ -178,12 +162,11 @@ export default function SignUpStepThree({ route, navigation }: any) {
           setFieldValue,
         }) => (
           <>
-            <TextInput
+            <FormField
               placeholder="@username"
-              style={[
-                styles.input,
-                focusedInput === "userName" && styles.inputFocused,
-              ]}
+              focused={focusedInput === "userName"}
+              showError={false}
+              styles={styles}
               value={values.username}
               onChangeText={(text) => {
                 setFieldValue("username", text);
@@ -192,7 +175,6 @@ export default function SignUpStepThree({ route, navigation }: any) {
               onBlur={() => setFieldTouched("username", true)}
               onFocus={() => setFocusedInput("userName")}
               autoCapitalize="none"
-              placeholderTextColor="#888"
             />
             {checking && <ActivityIndicator size="small" />}
             {validationMsg !== "" && (
@@ -226,21 +208,10 @@ export default function SignUpStepThree({ route, navigation }: any) {
               )}
             </TouchableOpacity>
 
-            {/* Already have an account? Login */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                marginTop: 32,
-              }}
-            >
-              <Text style={styles.bottomText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={[styles.bottomText, styles.bottomTextBold]}>
-                  Login
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <LoginFooterLink
+              onPress={() => navigation.navigate("Login")}
+              styles={styles}
+            />
           </>
         )}
       </Formik>

@@ -1,4 +1,5 @@
 import { StyleSheet, Dimensions } from "react-native";
+import { colors } from "../theme/colors";
 
 const { width } = Dimensions.get("window");
 const IMAGE_SIZE = (width - 40) / 3;
@@ -40,7 +41,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: 18,
     left: 12,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.07,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
@@ -65,14 +66,14 @@ export const styles = StyleSheet.create({
     opacity: 0.28,
   },
   profileSection: {
-    backgroundColor: "#E5ECF6",
+    backgroundColor: colors.background,
     marginTop: -45,
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 8,
     alignItems: "flex-start",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
@@ -97,10 +98,10 @@ export const styles = StyleSheet.create({
   },
   avatarWrapper: {
     borderWidth: 3,
-    borderColor: "#fff",
+    borderColor: colors.white,
     borderRadius: 50,
     padding: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     marginRight: 48,
     marginTop: -26,
     position: "relative",
@@ -118,13 +119,13 @@ export const styles = StyleSheet.create({
   name: {
     fontWeight: "bold",
     fontSize: 18,
-    color: "#222",
+    color: colors.textPrimary,
     marginTop: 4,
     marginLeft: 0, // ensure no left margin
   },
   username: {
     fontSize: 15,
-    color: "#888",
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: 4,
     marginLeft: 0, // changed from -20 to 0
@@ -132,7 +133,7 @@ export const styles = StyleSheet.create({
   },
   subInfo: {
     fontSize: 13,
-    color: "#888",
+    color: colors.textSecondary,
     marginTop: 2,
     marginLeft: 0, // changed from -20 to 0
   },
@@ -155,11 +156,11 @@ export const styles = StyleSheet.create({
   statNumber: {
     fontWeight: "bold",
     fontSize: 18,
-    color: "#222",
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 13,
-    color: "#888",
+    color: colors.textSecondary,
   },
   bioCard: {
     flexDirection: "row",
@@ -171,7 +172,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     width: "100%",
     alignSelf: "center",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
@@ -180,11 +181,11 @@ export const styles = StyleSheet.create({
   bioTitle: {
     fontWeight: "bold",
     fontSize: 15,
-    color: "#222",
+    color: colors.textPrimary,
   },
   bioSubtitle: {
     fontSize: 13,
-    color: "#888",
+    color: colors.textSecondary,
   },
   bioText: {
     fontSize: 13.5,
@@ -206,11 +207,11 @@ export const styles = StyleSheet.create({
   },
   hometownText: {
     fontSize: 14,
-    color: "#888",
+    color: colors.textSecondary,
     marginLeft: 6,
   },
   postsSection: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     marginTop: 10,
@@ -226,7 +227,7 @@ export const styles = StyleSheet.create({
   postsTitle: {
     fontWeight: "bold",
     fontSize: 14,
-    color: "#888",
+    color: colors.textSecondary,
     letterSpacing: 1,
   },
   postsGrid: {
@@ -250,9 +251,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     elevation: 2, // for Android shadow
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
@@ -261,7 +262,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     bottom: -2,
     right: -8,
-    backgroundColor: "#888",
+    backgroundColor: colors.textSecondary,
     borderRadius: 16,
     width: 27,
     height: 27,
@@ -269,7 +270,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 2,
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: colors.white,
     zIndex: 2,
   },
   checkboxContainer: {
@@ -283,14 +284,14 @@ export const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#ff8c00",
-    backgroundColor: "#fff",
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
   checkboxSelected: {
-    backgroundColor: "#ff8c00",
-    borderColor: "#ff8c00",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   editPostsBtn: {
     marginLeft: 6,
@@ -334,7 +335,7 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
   },
   deleteText: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
     fontSize: 15,
   },
@@ -344,7 +345,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     marginBottom: 10,
   },
   editableFieldInputMultiline: {
@@ -390,7 +391,7 @@ export const styles = StyleSheet.create({
     opacity: 0.7,
   },
   editableFieldSaveText: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
     fontSize: 16,
   },
@@ -410,7 +411,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 8,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
   hometownInputBtn: {
     marginLeft: 8,

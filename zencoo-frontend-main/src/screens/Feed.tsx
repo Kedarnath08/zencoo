@@ -32,6 +32,9 @@ import { formatPrice } from "../utils/currency";
 import { fetchUnreadCount } from "../api/notifications";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/FeedStack";
+import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
+import { colors } from "../theme/colors";
+import LoadingView from "../components/LoadingView";
 
 const FeedScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
@@ -82,11 +85,7 @@ const FeedScreen: React.FC = () => {
   }, []);
 
   // Refresh whenever the tab regains focus (e.g. after creating a post).
-  useFocusEffect(
-    useCallback(() => {
-      loadFeed();
-    }, [loadFeed])
-  );
+  useRefreshOnFocus(loadFeed);
 
   const handleToggleLike = async (postId: number) => {
     // Optimistic update
@@ -215,7 +214,7 @@ const FeedScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#FFA500" />
+          <LoadingView color="#FFA500" />
         </View>
       </SafeAreaView>
     );
@@ -243,14 +242,14 @@ const FeedScreen: React.FC = () => {
           style={styles.notificationBtn}
           onPress={() => navigation.navigate("Notifications")}
         >
-          <Icon name="bell-outline" size={30} color="#FFA500" />
+          <Icon name="bell-outline" size={30} color={colors.primaryLight} />
           {unreadCount > 0 && (
             <View
               style={{
                 position: "absolute",
                 top: -4,
                 right: -4,
-                backgroundColor: "#FF6B6B",
+                backgroundColor: colors.likeRed,
                 borderRadius: 10,
                 width: 20,
                 height: 20,

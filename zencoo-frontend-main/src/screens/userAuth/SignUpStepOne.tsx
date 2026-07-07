@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
-import { Ionicons } from "@expo/vector-icons";
 import styles from "../../styles/signupStyles";
 import { checkEmailRegistered } from "../../api/user";
+import AuthLogo from "../../components/auth/AuthLogo";
+import BackArrowButton from "../../components/auth/BackArrowButton";
+import LoginFooterLink from "../../components/auth/LoginFooterLink";
+import FormField from "../../components/auth/FormField";
 
 const SignupStepOneSchema = Yup.object().shape({
   fullName: Yup.string().required("Full Name is required"),
@@ -18,20 +21,8 @@ export default function SignUpStepOne({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Go Back Arrow */}
-      <TouchableOpacity
-        style={{ position: "absolute", top: 48, left: 16, zIndex: 10 }}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={28} color="#222" />
-      </TouchableOpacity>
-      {/* Logo */}
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../../../assets/images/zencoo.png")}
-          style={{ width: 210, height: 70, resizeMode: "contain" }}
-        />
-      </View>
+      <BackArrowButton onPress={() => navigation.goBack()} />
+      <AuthLogo containerStyle={styles.logoContainer} />
 
       <Formik
         initialValues={{
@@ -61,32 +52,26 @@ export default function SignUpStepOne({ navigation }: any) {
           touched,
         }) => (
           <>
-            {/* Full Name */}
-            <TextInput
+            <FormField
               placeholder="Full Name"
-              style={[
-                styles.input,
-                focusedInput === "fullName" && styles.inputFocused,
-              ]}
+              focused={focusedInput === "fullName"}
+              error={errors.fullName}
+              showError={touched.fullName}
+              styles={styles}
               value={values.fullName}
               onChangeText={handleChange("fullName")}
               onBlur={(e) => {
                 handleBlur("fullName")(e);
                 setFocusedInput(null);
               }}
-              placeholderTextColor="#888"
               onFocus={() => setFocusedInput("fullName")}
             />
-            {touched.fullName && errors.fullName && (
-              <Text style={styles.errorText}>{errors.fullName}</Text>
-            )}
-            {/* Email */}
-            <TextInput
+            <FormField
               placeholder="Email"
-              style={[
-                styles.input,
-                focusedInput === "email" && styles.inputFocused,
-              ]}
+              focused={focusedInput === "email"}
+              error={errors.email}
+              showError={touched.email}
+              styles={styles}
               value={values.email}
               onChangeText={handleChange("email")}
               onBlur={(e) => {
@@ -95,31 +80,22 @@ export default function SignUpStepOne({ navigation }: any) {
               }}
               keyboardType="email-address"
               autoCapitalize="none"
-              placeholderTextColor="#888"
               onFocus={() => setFocusedInput("email")}
             />
-            {touched.email && errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-            {/* Door Number */}
-            <TextInput
+            <FormField
               placeholder="Door Number"
-              style={[
-                styles.input,
-                focusedInput === "doorNumber" && styles.inputFocused,
-              ]}
+              focused={focusedInput === "doorNumber"}
+              error={errors.doorNumber}
+              showError={touched.doorNumber}
+              styles={styles}
               value={values.doorNumber}
               onChangeText={handleChange("doorNumber")}
               onBlur={(e) => {
                 handleBlur("doorNumber")(e);
                 setFocusedInput(null);
               }}
-              placeholderTextColor="#888"
               onFocus={() => setFocusedInput("doorNumber")}
             />
-            {touched.doorNumber && errors.doorNumber && (
-              <Text style={styles.errorText}>{errors.doorNumber}</Text>
-            )}
             {/* Community Dropdown */}
             <TextInput
               style={styles.input}
@@ -134,21 +110,10 @@ export default function SignUpStepOne({ navigation }: any) {
             >
               <Text style={styles.buttonText}>Next</Text>
             </TouchableOpacity>
-            {/* Already have an account? Login */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                marginTop: 32,
-              }}
-            >
-              <Text style={styles.bottomText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={[styles.bottomText, styles.bottomTextBold]}>
-                  Login
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <LoginFooterLink
+              onPress={() => navigation.navigate("Login")}
+              styles={styles}
+            />
           </>
         )}
       </Formik>

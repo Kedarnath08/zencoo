@@ -1,4 +1,5 @@
 import { StyleSheet, Platform } from "react-native";
+import { colors } from "../theme/colors";
 
 const CARD_RADIUS = 22;
 const NAV_HEIGHT = 74;
@@ -6,7 +7,7 @@ const NAV_HEIGHT = 74;
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E5ECF6",
+    backgroundColor: colors.background,
   },
   centered: {
     flex: 1,
@@ -17,9 +18,9 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -43,12 +44,12 @@ export const styles = StyleSheet.create({
     paddingTop: 8,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: CARD_RADIUS,
     marginHorizontal: 16,
     marginBottom: 22,
     paddingBottom: 10,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.07,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
@@ -66,12 +67,12 @@ export const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: colors.white,
   },
   name: {
     fontWeight: "bold",
     fontSize: 17,
-    color: "#222",
+    color: colors.textPrimary,
   },
   handle: {
     fontSize: 13,
@@ -99,7 +100,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: 18,
     right: 30,
-    backgroundColor: "#FFA500",
+    backgroundColor: colors.primaryLight,
     borderRadius: 16,
     padding: 6,
     zIndex: 2,
@@ -129,7 +130,7 @@ export const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: "#222",
+    color: colors.textPrimary,
     paddingHorizontal: 18,
     marginBottom: 2,
     marginTop: 2,

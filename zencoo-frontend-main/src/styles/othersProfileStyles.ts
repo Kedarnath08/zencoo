@@ -1,4 +1,5 @@
 import { StyleSheet, Dimensions } from "react-native";
+import { colors } from "../theme/colors";
 
 const HEADER_HEIGHT = 200;
 const PROFILE_SECTION_HEIGHT = 170;
@@ -29,7 +30,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: 18,
     left: 12,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.07,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
@@ -37,14 +38,14 @@ export const styles = StyleSheet.create({
     zIndex: 20,
   },
   profileSection: {
-    backgroundColor: "#E5ECF6",
+    backgroundColor: colors.background,
     marginTop: -45,
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 8,
     alignItems: "flex-start",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
@@ -68,10 +69,10 @@ export const styles = StyleSheet.create({
   },
   avatarWrapper: {
     borderWidth: 3,
-    borderColor: "#fff",
+    borderColor: colors.white,
     borderRadius: 50,
     padding: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     marginTop: -30,
     position: "relative",
     marginLeft: 0, // Adjust as needed
@@ -98,13 +99,13 @@ export const styles = StyleSheet.create({
   name: {
     fontWeight: "bold",
     fontSize: 18,
-    color: "#222",
+    color: colors.textPrimary,
     marginTop: 8,
     marginLeft: 0,
   },
   username: {
     fontSize: 15,
-    color: "#888",
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: 4,
     marginLeft: 0,
@@ -112,7 +113,7 @@ export const styles = StyleSheet.create({
   },
   subInfo: {
     fontSize: 13,
-    color: "#888",
+    color: colors.textSecondary,
     marginTop: 2,
     marginLeft: 0,
   },
@@ -135,11 +136,11 @@ export const styles = StyleSheet.create({
   statNumber: {
     fontWeight: "bold",
     fontSize: 18,
-    color: "#222",
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 13,
-    color: "#888",
+    color: colors.textSecondary,
   },
   hometownRow: {
     flexDirection: "row",
@@ -153,11 +154,11 @@ export const styles = StyleSheet.create({
   },
   hometownText: {
     fontSize: 14,
-    color: "#888",
+    color: colors.textSecondary,
     marginLeft: 6,
   },
   postsSection: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     marginTop: 10,
@@ -193,7 +194,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 32,
     minWidth: 120, // ensures both buttons have the same minimum width
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
@@ -204,7 +205,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FF8800",
   },
   messageBtn: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: "#eee",
   },

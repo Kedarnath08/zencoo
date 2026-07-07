@@ -4,12 +4,11 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   ScrollView,
   Alert,
   StyleSheet,
 } from "react-native";
-import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
@@ -18,11 +17,16 @@ import type { OrdersStackParamList } from "../navigation/OrdersStack";
 import { fetchOrder, updateOrderStatus, type Order } from "../api/orders";
 import { formatDateTime } from "../utils/time";
 import { formatPrice } from "../utils/currency";
+import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
+import ScreenHeader from "../components/ScreenHeader";
+import LoadingView from "../components/LoadingView";
+import StatusBadge from "../components/StatusBadge";
+import { colors } from "../theme/colors";
 
 const placeholder = require("../../assets/images/profile-placeholder.jpg");
 
-const LEAF_GREEN = "#43A047";
-const RED = "#F44336";
+const LEAF_GREEN = colors.success;
+const RED = colors.danger;
 
 type Params = { orderId: number; role: "placed" | "received" };
 
@@ -54,11 +58,7 @@ const OrderDetail: React.FC = () => {
     }
   }, [orderId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useRefreshOnFocus(load);
 
   const changeStatus = async (status: Order["status"]) => {
     if (busy) return;
@@ -89,7 +89,7 @@ const OrderDetail: React.FC = () => {
   if (loading) {
     return (
       <View style={[local.container, local.centered]}>
-        <ActivityIndicator size="large" color="#FF8C00" />
+        <LoadingView />
       </View>
     );
   }
@@ -117,13 +117,13 @@ const OrderDetail: React.FC = () => {
 
   return (
     <View style={[local.container, { paddingTop: insets.top }]}>
-      <View style={local.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={26} color="#444" />
-        </TouchableOpacity>
-        <Text style={local.headerTitle}>Order Details</Text>
-        <View style={{ width: 26 }} />
-      </View>
+      <ScreenHeader
+        title="Order Details"
+        onBack={() => navigation.goBack()}
+        iconSize={26}
+        style={local.header}
+        titleStyle={local.headerTitle}
+      />
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <View style={local.productCard}>
@@ -152,15 +152,13 @@ const OrderDetail: React.FC = () => {
         {/* Status timeline */}
         <View style={local.section}>
           {isTerminalNegative ? (
-            <View
-              style={[
-                local.terminalBadge,
-                { backgroundColor: RED },
-              ]}
-            >
-              <Ionicons name="close-circle" size={18} color="#fff" />
-              <Text style={local.terminalBadgeText}>Order {order.status}</Text>
-            </View>
+            <StatusBadge
+              status={order.status}
+              label={`Order ${order.status}`}
+              icon={<Ionicons name="close-circle" size={18} color="#fff" />}
+              style={local.terminalBadge}
+              textStyle={local.terminalBadgeText}
+            />
           ) : (
             <View style={local.timeline}>
               {STEPS.map((step, i) => {

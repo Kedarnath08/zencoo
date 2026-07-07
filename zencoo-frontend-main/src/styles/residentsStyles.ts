@@ -1,9 +1,10 @@
 import { StyleSheet } from "react-native";
+import { colors } from "../theme/colors";
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#e5ecf6",
+    backgroundColor: colors.background,
   },
   header: {
     position: "absolute",
@@ -12,9 +13,9 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -24,18 +25,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#222",
+    color: colors.textPrimary,
     marginLeft: 10,
     letterSpacing: 0.5,
   },
   wingCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 16,
     paddingVertical: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
   wingCardText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#222",
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
   backBtn: {
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
   searchBar: {
     height: 50,
     borderRadius: 20,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
     fontSize: 16,
     borderWidth: 1,
@@ -79,11 +80,11 @@ const styles = StyleSheet.create({
   residentRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: "bold",
     fontSize: 17,
-    color: "#222",
+    color: colors.textPrimary,
   },
   username: {
     fontSize: 14,
@@ -114,12 +115,12 @@ const styles = StyleSheet.create({
   },
   subInfo: {
     fontSize: 14,
-    color: "#888",
+    color: colors.textSecondary,
     marginTop: 2,
   },
   noResults: {
     textAlign: "center",
-    color: "#888",
+    color: colors.textSecondary,
     marginTop: 32,
     fontSize: 16,
   },

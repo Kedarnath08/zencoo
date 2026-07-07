@@ -1,9 +1,10 @@
 import { StyleSheet } from "react-native";
+import { colors } from "../theme/colors";
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E5ECF6",
+    backgroundColor: colors.background,
   },
   header: {
     position: "absolute",
@@ -12,10 +13,10 @@ export const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
     // Shadow for iOS
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -26,7 +27,7 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#222",
+    color: colors.textPrimary,
     marginLeft: 10, // space between icon and title
     letterSpacing: 0.5,
   },
@@ -35,7 +36,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   wingCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 16,
     paddingVertical: 28,
     alignItems: "center",
@@ -52,7 +53,7 @@ export const styles = StyleSheet.create({
   wingCardText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#222",
+    color: colors.textPrimary,
     letterSpacing: 0.5,
   },
 });

@@ -10,8 +10,7 @@ import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import type { FeedPost } from "../api/posts";
 import { timeAgo } from "../utils/time";
 import { formatPrice } from "../utils/currency";
-
-const placeholderAvatar = require("../../assets/images/profile-placeholder.jpg");
+import Avatar from "./Avatar";
 
 interface FeedPostCardProps {
   post: FeedPost;
@@ -33,10 +32,7 @@ const FeedPostCard: React.FC<FeedPostCardProps> = ({
   <View style={styles.card}>
     {/* Card Header */}
     <View style={styles.cardHeader}>
-      <Image
-        source={post.profilePic ? { uri: post.profilePic } : placeholderAvatar}
-        style={styles.avatar}
-      />
+      <Avatar uri={post.profilePic} style={styles.avatar} />
       <View style={{ flex: 1, marginLeft: 10 }}>
         <Text style={styles.name}>{post.fullName}</Text>
         <Text style={styles.handle}>@{post.username}</Text>

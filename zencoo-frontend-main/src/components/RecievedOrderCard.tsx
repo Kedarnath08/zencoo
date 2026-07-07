@@ -11,30 +11,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Order } from "../api/orders";
 import { formatDateTime } from "../utils/time";
 import { formatPrice } from "../utils/currency";
+import StatusBadge from "./StatusBadge";
+import { colors } from "../theme/colors";
 
 const placeholder = require("../../assets/images/profile-placeholder.jpg");
 
-const LEAF_GREEN = "#43A047"; // Leaf green
-const RED = "#F44336";
-
-const statusColors: Record<string, string> = {
-  PENDING: LEAF_GREEN,
-  ACCEPTED: LEAF_GREEN,
-  COMPLETED: LEAF_GREEN,
-  REJECTED: RED,
-  CANCELLED: RED,
-};
-
-const StatusBadge = ({ status }: { status: string }) => (
-  <View
-    style={[
-      styles.statusBadge,
-      { backgroundColor: statusColors[status] || "#ccc" },
-    ]}
-  >
-    <Text style={styles.statusBadgeText}>{status}</Text>
-  </View>
-);
+const LEAF_GREEN = colors.success;
+const RED = colors.danger;
 
 const ReceivedOrderCard = ({
   order,
@@ -133,7 +116,13 @@ const ReceivedOrderCard = ({
       )}
       {(order.status === "COMPLETED" ||
         order.status === "REJECTED" ||
-        order.status === "CANCELLED") && <StatusBadge status={order.status} />}
+        order.status === "CANCELLED") && (
+        <StatusBadge
+          status={order.status}
+          style={styles.statusBadge}
+          textStyle={styles.statusBadgeText}
+        />
+      )}
     </View>
   </TouchableOpacity>
 );

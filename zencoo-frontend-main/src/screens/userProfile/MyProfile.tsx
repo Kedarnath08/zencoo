@@ -4,14 +4,12 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  FlatList,
   ImageBackground,
   ScrollView,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -34,6 +32,8 @@ import {
   type FeedPost,
 } from "../../api/posts";
 import { useAuth } from "../../context/AuthContext";
+import ProfileStatsRow from "../../components/ProfileStatsRow";
+import PostsGrid from "../../components/PostsGrid";
 
 const profilePic = require("../../../assets/images/profile-placeholder.jpg");
 const imageMap: { [key: string]: any } = {
@@ -408,26 +408,17 @@ const MyProfileScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            <View style={styles.statsColumnFixed}>
-              <View style={styles.statsRowFixed}>
-                <TouchableOpacity
-                  style={styles.statBoxFixed}
-                  onPress={() =>
-                    navigation.navigate("FollowList", {
-                      userId: Number(profile.id),
-                      initialTab: "followers",
-                    })
-                  }
-                >
-                  <Text style={styles.statNumber}>{profile.followersCount}</Text>
-                  <Text style={styles.statLabel}>Followers</Text>
-                </TouchableOpacity>
-                <View style={styles.statBoxFixed}>
-                  <Text style={styles.statNumber}>{posts.length}</Text>
-                  <Text style={styles.statLabel}>Posts</Text>
-                </View>
-              </View>
-            </View>
+            <ProfileStatsRow
+              followersCount={profile.followersCount}
+              postsCount={posts.length}
+              onFollowersPress={() =>
+                navigation.navigate("FollowList", {
+                  userId: Number(profile.id),
+                  initialTab: "followers",
+                })
+              }
+              styles={styles}
+            />
           </View>
 
           {/* Bio Card - MOBILE FRIENDLY VERSION */}
@@ -554,55 +545,26 @@ const MyProfileScreen: React.FC = () => {
               </TouchableOpacity>
             )}
           </View>
-          <FlatList
-            key={"posts-3col"}
-            data={posts}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.postWrapper}>
-                <TouchableOpacity
-                  onPress={() =>
-                    editMode
-                      ? toggleSelectPost(item.id)
-                      : navigation.navigate("PostDetail", {
-                          postId: item.id,
-                          isOwn: true,
-                        })
-                  }
-                  style={styles.postContainer}
-                  activeOpacity={0.7}
-                >
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={styles.postImage}
-                  />
-                  {editMode && (
-                    <View style={styles.checkboxContainer}>
-                      <View
-                        style={[
-                          styles.checkbox,
-                          selectedPosts.includes(item.id) &&
-                            styles.checkboxSelected,
-                        ]}
-                      >
-                        {selectedPosts.includes(item.id) && (
-                          <Ionicons name="checkmark" size={16} color="#fff" />
-                        )}
-                      </View>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-            numColumns={3}
-            contentContainerStyle={[styles.postsGrid, { paddingBottom: 80 }]}
-            showsVerticalScrollIndicator={false}
-            scrollEnabled={false}
-            ListEmptyComponent={
-              <Text style={{ color: "#888", padding: 16 }}>
-                You haven't posted yet.
-              </Text>
+          <PostsGrid
+            posts={posts}
+            onPressPost={(item) =>
+              navigation.navigate("PostDetail", { postId: item.id, isOwn: true })
             }
+            emptyMessage="You haven't posted yet."
+            emptyTextStyle={{ color: "#888", padding: 16 }}
+            contentContainerStyle={[styles.postsGrid, { paddingBottom: 80 }]}
+            activeOpacity={0.7}
+            editMode={editMode}
+            selectedIds={selectedPosts}
+            onToggleSelect={toggleSelectPost}
+            styles={{
+              postImage: styles.postImage,
+              postWrapper: styles.postWrapper,
+              postContainer: styles.postContainer,
+              checkboxContainer: styles.checkboxContainer,
+              checkbox: styles.checkbox,
+              checkboxSelected: styles.checkboxSelected,
+            }}
           />
         </View>
         {(uploading || deleting) && (

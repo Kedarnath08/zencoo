@@ -27,8 +27,9 @@ import {
   type PostComment,
 } from "../api/posts";
 import { timeAgo } from "../utils/time";
-
-const placeholderAvatar = require("../../assets/images/profile-placeholder.jpg");
+import Avatar from "../components/Avatar";
+import ScreenHeader from "../components/ScreenHeader";
+import LoadingView from "../components/LoadingView";
 
 type PostDetailParams = {
   postId: number;
@@ -136,7 +137,7 @@ const PostDetail: React.FC = () => {
   if (loading) {
     return (
       <View style={feedStyles.centered}>
-        <ActivityIndicator size="large" color="#FFA500" />
+        <LoadingView color="#FFA500" />
       </View>
     );
   }
@@ -159,28 +160,26 @@ const PostDetail: React.FC = () => {
       style={feedStyles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View
-        style={[
-          local.header,
-          { paddingTop: insets.top, height: headerHeight },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={26} color="#444" />
-        </TouchableOpacity>
-        <Text style={local.headerTitle}>Post</Text>
-        {isOwn ? (
-          <TouchableOpacity onPress={handleDelete} disabled={deleting}>
-            {deleting ? (
-              <ActivityIndicator size="small" color="#F44336" />
-            ) : (
-              <Ionicons name="trash-outline" size={22} color="#F44336" />
-            )}
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 22 }} />
-        )}
-      </View>
+      <ScreenHeader
+        title="Post"
+        onBack={() => navigation.goBack()}
+        iconSize={26}
+        style={[local.header, { paddingTop: insets.top, height: headerHeight }]}
+        titleStyle={local.headerTitle}
+        right={
+          isOwn ? (
+            <TouchableOpacity onPress={handleDelete} disabled={deleting}>
+              {deleting ? (
+                <ActivityIndicator size="small" color="#F44336" />
+              ) : (
+                <Ionicons name="trash-outline" size={22} color="#F44336" />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 22 }} />
+          )
+        }
+      />
 
       <FlatList
         data={comments}
@@ -189,14 +188,7 @@ const PostDetail: React.FC = () => {
         ListHeaderComponent={
           <View>
             <View style={feedStyles.cardHeader}>
-              <Image
-                source={
-                  post.profilePic
-                    ? { uri: post.profilePic }
-                    : placeholderAvatar
-                }
-                style={feedStyles.avatar}
-              />
+              <Avatar uri={post.profilePic} style={feedStyles.avatar} />
               <View style={{ marginLeft: 10 }}>
                 <Text style={feedStyles.name}>{post.fullName}</Text>
                 <Text style={feedStyles.handle}>@{post.username}</Text>

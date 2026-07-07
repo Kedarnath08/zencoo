@@ -1,21 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import residentsStyles from "../styles/residentsStyles";
 import ordersStyles from "../styles/ordersStyles";
 import { fetchFollowers, fetchFollowing } from "../api/follow";
 import type { Resident } from "../api/residents";
-
-const placeholderAvatar = require("../../assets/images/profile-placeholder.jpg");
+import ScreenHeader from "../components/ScreenHeader";
+import ResidentListItem from "../components/ResidentListItem";
+import LoadingView from "../components/LoadingView";
 
 type FollowListParams = {
   userId: number;
@@ -56,22 +49,14 @@ const FollowList: React.FC = () => {
 
   return (
     <View style={residentsStyles.container}>
-      <View
-        style={[
-          residentsStyles.header,
-          { paddingTop: insets.top, height: headerHeight },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={residentsStyles.backBtn}
-        >
-          <Ionicons name="arrow-back" size={28} color="#444" />
-        </TouchableOpacity>
-        <Text style={residentsStyles.headerTitle}>
-          {activeTab === "followers" ? "Followers" : "Following"}
-        </Text>
-      </View>
+      <ScreenHeader
+        title={activeTab === "followers" ? "Followers" : "Following"}
+        onBack={() => navigation.goBack()}
+        style={[residentsStyles.header, { paddingTop: insets.top, height: headerHeight }]}
+        titleStyle={residentsStyles.headerTitle}
+        backButtonStyle={residentsStyles.backBtn}
+        right={null}
+      />
 
       <View style={{ paddingTop: headerHeight, flex: 1 }}>
         <View style={ordersStyles.tabContainer}>
@@ -110,11 +95,7 @@ const FollowList: React.FC = () => {
         </View>
 
         {loading ? (
-          <ActivityIndicator
-            size="large"
-            color="#FF8C00"
-            style={{ marginTop: 32 }}
-          />
+          <LoadingView style={{ marginTop: 32 }} />
         ) : (
           <FlatList
             data={list}
@@ -124,34 +105,16 @@ const FollowList: React.FC = () => {
               paddingBottom: insets.bottom + 32,
             }}
             renderItem={({ item }) => (
-              <TouchableOpacity
+              <ResidentListItem
+                displayName={item.displayName}
+                username={item.username}
+                wing={item.wing}
+                door={item.door}
+                profilePic={item.profilePic}
                 onPress={() =>
                   navigation.push("OthersProfile", { id: String(item.id) })
                 }
-                activeOpacity={0.7}
-              >
-                <View style={residentsStyles.residentRow}>
-                  <Image
-                    source={
-                      item.profilePic
-                        ? { uri: item.profilePic }
-                        : placeholderAvatar
-                    }
-                    style={residentsStyles.avatar}
-                  />
-                  <View style={residentsStyles.info}>
-                    <Text style={residentsStyles.name}>
-                      {item.displayName}
-                    </Text>
-                    <Text style={residentsStyles.username}>
-                      @{item.username}
-                    </Text>
-                    <Text style={residentsStyles.subInfo}>
-                      Wing {item.wing} • Door {item.door}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+              />
             )}
             ListEmptyComponent={
               <Text style={residentsStyles.noResults}>

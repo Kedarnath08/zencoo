@@ -1,18 +1,12 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  Alert,
-} from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import styles from "../../styles/loginStyles";
 import { loginUser } from "../../api/user";
 import { useAuth } from "../../context/AuthContext";
+import AuthLogo from "../../components/auth/AuthLogo";
+import FormField from "../../components/auth/FormField";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Required"),
@@ -27,13 +21,7 @@ export default function Login({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../../../assets/images/zencoo.png")}
-          style={{ width: 210, height: 70, resizeMode: "contain" }}
-        />
-      </View>
+      <AuthLogo containerStyle={styles.logoContainer} />
 
       <Formik
         initialValues={{ email: "", password: "" }}
@@ -59,12 +47,12 @@ export default function Login({ navigation }: any) {
           isSubmitting,
         }) => (
           <>
-            <TextInput
+            <FormField
               placeholder="Enter your email"
-              style={[
-                styles.input,
-                focusedInput === "email" && styles.inputFocused,
-              ]}
+              focused={focusedInput === "email"}
+              error={errors.email}
+              showError={touched.email}
+              styles={styles}
               value={values.email}
               onChangeText={handleChange("email")}
               onBlur={(e) => {
@@ -74,17 +62,13 @@ export default function Login({ navigation }: any) {
               onFocus={() => setFocusedInput("email")}
               keyboardType="email-address"
               autoCapitalize="none"
-              placeholderTextColor="#888"
             />
-            {touched.email && errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-            <TextInput
+            <FormField
               placeholder="Enter your password"
-              style={[
-                styles.input,
-                focusedInput === "password" && styles.inputFocused,
-              ]}
+              focused={focusedInput === "password"}
+              error={errors.password}
+              showError={touched.password}
+              styles={styles}
               value={values.password}
               onChangeText={handleChange("password")}
               onBlur={(e) => {
@@ -93,11 +77,7 @@ export default function Login({ navigation }: any) {
               }}
               onFocus={() => setFocusedInput("password")}
               secureTextEntry
-              placeholderTextColor="#888"
             />
-            {touched.password && errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
 
             <TouchableOpacity
               style={styles.button}
@@ -114,23 +94,6 @@ export default function Login({ navigation }: any) {
         )}
       </Formik>
 
-      {/* Google Login Button */}
-      {/*
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: "#4285F4" }]}
-        onPress={() => {
-          setIsGoogleLoading(true);
-          promptAsync();
-        }}
-        disabled={isGoogleLoading || !request}
-      >
-        {isGoogleLoading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Continue with Google</Text>
-        )}
-      </TouchableOpacity>
-      */}
       {/* Bottom Text */}
       <View style={styles.bottomTextContainer}>
         <Text style={styles.bottomText}>
