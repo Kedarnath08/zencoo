@@ -15,7 +15,10 @@ import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,16 +49,12 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostDto> getFeed(Long currentUserId) {
-        return postRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(p -> toDto(p, currentUserId))
-                .collect(Collectors.toList());
+        return toDtoList(postRepository.findAllByOrderByCreatedAtDesc(), currentUserId);
     }
 
     @Transactional(readOnly = true)
     public List<PostDto> getUserPosts(Long authorId, Long currentUserId) {
-        return postRepository.findByUserIdOrderByCreatedAtDesc(authorId).stream()
-                .map(p -> toDto(p, currentUserId))
-                .collect(Collectors.toList());
+        return toDtoList(postRepository.findByUserIdOrderByCreatedAtDesc(authorId), currentUserId);
     }
 
     @Transactional
@@ -122,7 +121,37 @@ public class PostService {
         return toCommentDto(comment);
     }
 
+    /** Single-post mapping (create/get/like/comment) — 3 queries is fine for one row. */
     private PostDto toDto(Post post, Long currentUserId) {
+        return toDto(post,
+                postLikeRepository.countByPostId(post.getId()),
+                postCommentRepository.countByPostId(post.getId()),
+                postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId));
+    }
+
+    /**
+     * Batch mapping for lists (feed / user posts). Fetches like counts, comment
+     * counts, and liked-by-me state in 3 queries total instead of 3 per post.
+     */
+    private List<PostDto> toDtoList(List<Post> posts, Long currentUserId) {
+        if (posts.isEmpty()) return List.of();
+
+        List<Long> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Long, Long> likeCounts = postLikeRepository.countByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+        Map<Long, Long> commentCounts = postCommentRepository.countByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+        Set<Long> likedPostIds = new HashSet<>(postLikeRepository.findLikedPostIds(currentUserId, postIds));
+
+        return posts.stream()
+                .map(p -> toDto(p,
+                        likeCounts.getOrDefault(p.getId(), 0L),
+                        commentCounts.getOrDefault(p.getId(), 0L),
+                        likedPostIds.contains(p.getId())))
+                .collect(Collectors.toList());
+    }
+
+    private PostDto toDto(Post post, long likeCount, long commentCount, boolean likedByMe) {
         User author = post.getUser();
         return new PostDto(
                 post.getId(),
@@ -134,9 +163,9 @@ public class PostService {
                 post.getCaption(),
                 post.getPrice(),
                 post.getCreatedAt() != null ? post.getCreatedAt().format(ISO) : null,
-                postLikeRepository.countByPostId(post.getId()),
-                postCommentRepository.countByPostId(post.getId()),
-                postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId)
+                likeCount,
+                commentCount,
+                likedByMe
         );
     }
 

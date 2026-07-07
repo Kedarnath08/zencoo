@@ -3,12 +3,12 @@ package com.zencoo.security;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
+import java.util.Collections;
 
 public class CustomUserDetails implements UserDetails {
-    private Long id;
-    private String username;
-    private String password;
-    // ...other fields...
+    private final Long id;
+    private final String username;
+    private final String password;
 
     public CustomUserDetails(Long id, String username, String password) {
         this.id = id;
@@ -20,8 +20,7 @@ public class CustomUserDetails implements UserDetails {
         return id;
     }
 
-    // Implement other UserDetails methods...
-    @Override public Collection<? extends GrantedAuthority> getAuthorities() { return null; }
+    @Override public Collection<? extends GrantedAuthority> getAuthorities() { return Collections.emptyList(); }
     @Override public String getPassword() { return password; }
     @Override public String getUsername() { return username; }
     @Override public boolean isAccountNonExpired() { return true; }

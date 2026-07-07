@@ -18,54 +18,43 @@ public class UserProfileService {
     private FollowService followService;
 
     public Optional<UserProfileDto> getUserProfileById(Long userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        return userOpt.map(user -> {
-            UserProfileDto dto = new UserProfileDto(
-                    user.getId(),
-                    user.getUsername(),
-                    user.getEmail(),
-                    user.getFullName(),
-                    user.getDoorNumber(),
-                    user.getBio(),
-                    user.getHometown(),
-                    user.getProfilePic()
-            );
-            dto.setFollowersCount(followService.countFollowers(userId));
-            dto.setFollowingCount(followService.countFollowing(userId));
-            return dto;
+        return userRepository.findById(userId).map(this::toDto);
+    }
+
+    public Optional<UserProfileDto> updateUserBio(Long userId, String bio) {
+        return userRepository.findById(userId).map(user -> {
+            user.setBio(bio);
+            return toDto(userRepository.save(user));
         });
     }
 
-    public Optional<User> updateUserBio(Long userId, String bio) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            user.setBio(bio);
-            userRepository.save(user);
-            return Optional.of(user);
-        }
-        return Optional.empty();
-    }
-
-    public Optional<User> updateUserHometown(Long userId, String hometown) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
+    public Optional<UserProfileDto> updateUserHometown(Long userId, String hometown) {
+        return userRepository.findById(userId).map(user -> {
             user.setHometown(hometown);
-            userRepository.save(user);
-            return Optional.of(user);
-        }
-        return Optional.empty();
+            return toDto(userRepository.save(user));
+        });
     }
 
-    public Optional<User> updateUserProfilePic(Long userId, String profilePic) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
+    public Optional<UserProfileDto> updateUserProfilePic(Long userId, String profilePic) {
+        return userRepository.findById(userId).map(user -> {
             user.setProfilePic(profilePic);
-            userRepository.save(user);
-            return Optional.of(user);
-        }
-        return Optional.empty();
+            return toDto(userRepository.save(user));
+        });
+    }
+
+    private UserProfileDto toDto(User user) {
+        UserProfileDto dto = new UserProfileDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getDoorNumber(),
+                user.getBio(),
+                user.getHometown(),
+                user.getProfilePic()
+        );
+        dto.setFollowersCount(followService.countFollowers(user.getId()));
+        dto.setFollowingCount(followService.countFollowing(user.getId()));
+        return dto;
     }
 }

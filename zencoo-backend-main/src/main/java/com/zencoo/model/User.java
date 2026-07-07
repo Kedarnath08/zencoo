@@ -29,7 +29,7 @@ public class User {
     @Column(name = "community")
     private String community;
 
-    @Column(name = "bio")
+    @Column(name = "bio", length = 500)
     private String bio;
 
     @Column(name = "hometown")
@@ -38,7 +38,7 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "profile_pic")
+    @Column(name = "profile_pic", length = 1000)
     private String profilePic;
 
     @PrePersist

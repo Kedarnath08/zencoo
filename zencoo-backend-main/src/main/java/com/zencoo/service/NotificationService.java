@@ -57,14 +57,7 @@ public class NotificationService {
     }
 
     public void markAllAsRead(Long userId) {
-        List<Notification> unreadNotifications = notificationRepository
-                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, Integer.MAX_VALUE))
-                .getContent()
-                .stream()
-                .filter(n -> !n.isRead())
-                .collect(Collectors.toList());
-        unreadNotifications.forEach(n -> n.setRead(true));
-        notificationRepository.saveAll(unreadNotifications);
+        notificationRepository.markAllAsReadForUser(userId);
     }
 
     private NotificationDto toDto(Notification notification) {

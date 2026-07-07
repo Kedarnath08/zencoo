@@ -1,8 +1,5 @@
 package com.zencoo.controller;
 
-// import com.zencoo.util.GoogleTokenVerifier;
-// import com.zencoo.util.JwtUtil;
-// import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.zencoo.dto.request.LoginRequest;
 import com.zencoo.dto.request.RegisterRequest;
 import com.zencoo.service.AuthService;
@@ -101,33 +98,4 @@ public class AuthController {
         resp.put("unique", unique);
         return ResponseEntity.ok(resp);
     }
-
-    // @PostMapping("/google-login")
-    // public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
-    //     String idToken = body.get("idToken");
-    //     if (idToken == null) {
-    //         return ResponseEntity.badRequest().body(Map.of("message", "Missing idToken"));
-    //     }
-    //
-    //     GoogleIdToken.Payload payload = GoogleTokenVerifier.verify(idToken);
-    //     if (payload == null) {
-    //         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid Google token"));
-    //     }
-    //
-    //     String email = payload.getEmail();
-    //     String name = (String) payload.get("name");
-    //
-    //     var userOpt = authService.getUserByEmail(email);
-    //     if (userOpt.isEmpty()) {
-    //         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "User not registered"));
-    //     }
-    //
-    //     String jwt = JwtUtil.generateToken(email, name);
-    //     var user = userOpt.get();
-    //     return ResponseEntity.ok(Map.of(
-    //         "jwt", jwt,
-    //         "email", user.getEmail(),
-    //         "name", user.getFullName() != null ? user.getFullName() : name
-    //     ));
-    // }
 }
