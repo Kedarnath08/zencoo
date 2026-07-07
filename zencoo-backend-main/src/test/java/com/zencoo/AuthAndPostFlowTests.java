@@ -365,7 +365,6 @@ class AuthAndPostFlowTests {
         String aliceToken = registerAndGetToken("alicen@example.com", "@alicen");
         long aliceId = myId(aliceToken);
         String bobToken = registerAndGetToken("bobn@example.com", "@bobn");
-        long bobId = myId(bobToken);
 
         // Alice creates a post.
         String postBody = mapper.createObjectNode()
