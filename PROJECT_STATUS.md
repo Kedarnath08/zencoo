@@ -30,8 +30,8 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 | Follow (follow/unfollow, follower counts) | ✅ | ✅ `POST/DELETE /api/users/{id}/follow` | **Live** |
 | Followers / following lists | ✅ | ✅ `GET /api/users/{id}/followers\|following` | **Live** |
 | Post detail (single post, like, comments, delete-if-mine) | ✅ | ✅ `GET /api/posts/{id}` | **Live** |
+| Notifications (bell badge + list) | ✅ | ✅ `GET /api/notifications*` | **Live** |
 | Messaging | 🔴 placeholder button | 🔴 | **Not built** |
-| Notifications | 🔴 bell icon | 🔴 | **Not built** |
 | Google login | 🔴 removed | 🔴 removed | **Dropped** |
 
 ---
@@ -89,11 +89,28 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 - **Auth rate limiting**: `RateLimitFilter` — in-memory fixed-window per-IP limiter on `/api/auth/login` + `/api/auth/register` (configurable via `AUTH_RATE_LIMIT_MAX` / `AUTH_RATE_LIMIT_WINDOW`, default 10/60s), returns `429 {message}`. Noted as single-instance; swap for Redis/gateway in multi-instance prod.
 - Tests: `registrationValidationRejectsBadInput` + a dedicated `RateLimitTests` (4th login in-window → 429).
 
+### Notifications system (this session)
+- Backend:
+  - **`Notification` entity** (id, userId FK, type enum, relatedId, title, message, isRead, createdAt).
+  - **`NotificationService`** with CRUD + `getUnreadCount`, triggered automatically when:
+    - Post is liked (excludes author)
+    - Comment added (excludes author)
+    - User followed
+    - Order status changes (ACCEPTED/REJECTED/COMPLETED/CANCELLED)
+  - **`NotificationController`** (`GET /api/notifications`, `/unread-count`, `PUT /{id}/read`, `/mark-all-read`).
+  - Integrated into `PostService`, `FollowService`, `OrderService` — each triggers notifications on relevant events.
+  - Test: `notificationsTriggeredByPostLikeCommentFollowAndOrderStatus` verifies all types, self-notifications excluded, mark-as-read works.
+- Frontend:
+  - **`NotificationsScreen`** — list of notifications with unread state, type icons (heart/comment/person-add/cart), swipe-to-read, tap to navigate to related content (post detail, user profile, orders).
+  - **`FeedStack`** — new stack navigator (replaces bare Feed tab) containing Feed + Notifications for proper navigation.
+  - **Bell icon** in Feed header with red **unread count badge** — tap navigates to Notifications, count refreshes on tab focus.
+  - Reuses existing app colors/styles (orange #FF8C00 for primary, red for likes, gray for others).
+
 ---
 
 ## Verification
 
-- **Backend:** `./mvnw test` — **9 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed → like → comment → get-post-by-id → residents (with post summaries) → order lifecycle & authorization → follow/unfollow & counts → followers/following lists → input validation → auth rate limiting). No MySQL required.
+- **Backend:** `./mvnw test` — **10 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed → like → comment → get-post-by-id → residents (with post summaries) → order lifecycle & authorization → follow/unfollow & counts → followers/following lists → **notifications (like, comment, follow, order status)** → input validation → auth rate limiting). No MySQL required.
 - **Frontend:** `npx tsc --noEmit` — **clean**.
 - ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real.
 
@@ -101,9 +118,8 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 
 ## Remaining roadmap
 
-1. **Notifications** — the feed bell + order/follow events have no notification system.
-2. **Richer ordering** — a real product/checkout flow (price, product catalog) instead of the minimal "order this post's item" shortcut; an order-detail screen (analogous to the new post-detail screen).
-3. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
+1. **Richer ordering** — a real product/checkout flow (price, product catalog) instead of the minimal "order this post's item" shortcut; an order-detail screen (analogous to the new post-detail screen).
+2. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
 
 ---
 

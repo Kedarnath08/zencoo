@@ -19,13 +19,13 @@ The project is split into two independent repos/folders:
 
 ---
 
-## Current state (updated 2026-07-06)
+## Current state (updated 2026-07-07)
 
-A production-hardening pass was done on top of the original prototype. Status now:
+A production-hardening pass (phases 1–6) and feature-completion pass (residents, orders, follow, post-detail, notifications) were done on top of the original prototype. Status now:
 
 - ✅ **Real, wired to backend:** Sign-up (auto-login), login (BCrypt + JWT), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
-- ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); and a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid.
-- 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Remaining features are net-new (messaging, notifications, richer commerce) — see below.
+- ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid; and a **real-time notifications system** (bell icon with unread badge, tap → notifications screen, auto-created for likes/comments/follows/order-status-changes).
+- 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Remaining features are net-new (richer commerce flow, messaging) — see below.
 - 🔴 **Intentionally dropped:** Google login (commented out on both ends; `firebase`/`expo-auth-session`/`expo-random`/`expo-crypto` were removed as unused deps in the cleanup pass).
 
 ### What the hardening pass changed
