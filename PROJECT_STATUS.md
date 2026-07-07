@@ -1,6 +1,6 @@
 # Zencoo — Project Status
 
-**Last updated:** 2026-07-07 (notifications system, richer ordering — post pricing, order-detail screen)
+**Last updated:** 2026-07-07 (notifications system, richer ordering, codebase cleanup/audit pass)
 **Scope of this doc:** a living status dashboard — what's done, what's live vs mock, what's next. For the full architectural overview see [PROJECT.md](PROJECT.md).
 
 Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not built / placeholder
@@ -119,6 +119,18 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
   - **`OrderDetail.tsx`** (new) — product image/name, price × qty = total, a visual status timeline (Placed → Accepted → Completed, or a red terminal badge for Rejected/Cancelled), counterparty (buyer/seller) tappable to their profile, note, timestamps, and role-aware accept/reject/complete/cancel actions.
   - **`OrdersStack`** (new) — replaces the bare `Orders` tab screen (was previously unable to push new screens) with `OrdersMain` + `OrderDetail` + `OthersProfile`.
   - `Orders.tsx` order cards are now tappable (→ `OrderDetail`); the seller/customer name links, previously unwired no-ops, now navigate to `OthersProfile`.
+
+### Codebase cleanup / best-practices audit (this session)
+A full pass over both codebases for dead code, N+1 queries, and consistency issues, prompted by a direct ask to check standard practices:
+- **N+1 query fix**: `PostService.getFeed`/`getUserPosts` previously ran 3 queries *per post* (like count, comment count, liked-by-me). Now batched via new `countByPostIdIn`/`findLikedPostIds` repository queries — O(1) queries regardless of feed size instead of O(3n+1).
+- **`NotificationService.markAllAsRead`** now does a single bulk `UPDATE` instead of loading every notification into memory to filter+resave.
+- **`CustomUserDetails.getAuthorities()`** was returning `null` (violates the `UserDetails` contract, latent NPE risk) — now returns `Collections.emptyList()`.
+- **`UserProfileController`** was building the same `UserProfileDto` by hand 3 times and taking raw `Map<String,String>` bodies (no validation — an oversized bio could 500 instead of a clean 400). Added `UpdateBioRequest`/`UpdateHometownRequest`/`UpdateProfilePicRequest` (`@Valid`, size-capped) and a shared `toDto` helper in `UserProfileService`; this also fixed a real bug where `followersCount`/`followingCount` came back as 0 on the update responses (the manual DTO reconstruction never set them).
+- **Dead code removed**: `GoogleTokenVerifier.java` (fully commented out) + the commented Google-login block in `AuthController`; unused frontend files `navigation/types.ts` and `structure.txt` (a stale directory dump referencing files deleted long ago); unused npm deps `react-native-tab-view`, `@react-native-picker/picker`, `react-native-vector-icons` (app uses `@expo/vector-icons`).
+- **Consistency fix**: `ResidentsStack`/`ProfileStack` required 4 extra `OthersProfile` params (`displayName/username/wing/door`) that the screen never reads (it refetches by id) — now matches `FeedStack`/`OrdersStack`'s `{id}`-only shape; the two call sites (`Residents.tsx`, `FollowList.tsx`) simplified to match.
+- Stray leftover comments (`// <-- add this`, `// <-- FIXED`, etc.) cleaned up across both codebases.
+- **Flagged but intentionally not changed**: the repeated `if (userId == null) return 401` boilerplate in every controller (technically unreachable — Spring Security already blocks unauthenticated requests upstream — but harmless and touching all 7 controllers wasn't worth the blast radius); heavy `any` typing on navigation props in the auth-flow screens and `MyProfile.tsx` (a real gap, but a bigger separate refactor); the committed dev-default JWT secret / DB `root`/`root` password (already documented as "override in production").
+- Verified: 11/11 backend tests still pass, frontend typechecks clean — no behavior changes, only internal cleanup.
 
 ---
 

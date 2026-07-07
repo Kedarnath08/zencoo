@@ -55,7 +55,7 @@ com.zencoo
 │   ├── SecurityConfig.java        # JWT filter chain; /api/auth/** is public, everything else needs a token; stateless
 │   └── WebConfig.java             # CORS (allows http://localhost:8080 — note: not the Expo dev origin)
 ├── controller/
-│   ├── AuthController.java        # /api/auth/*  (login, register, check-email, check-username; google-login commented out)
+│   ├── AuthController.java        # /api/auth/*  (login, register, check-email, check-username)
 │   └── UserProfileController.java # /api/*       (get profile, patch bio/hometown/profile-pic)
 ├── dto/UserProfileDto.java        # Shape returned to the client for a profile
 ├── model/User.java                # JPA @Entity -> "users" table
@@ -63,9 +63,7 @@ com.zencoo
 ├── security/
 │   ├── CustomUserDetails.java     # Wraps userId as the Spring Security principal
 │   └── JwtAuthenticationFilter.java # Reads "Authorization: Bearer <jwt>", sets auth context
-├── util/
-│   ├── JwtUtil.java               # HS512 JWT sign/verify; secret hardcoded; 1-day expiry
-│   └── GoogleTokenVerifier.java   # Entirely commented out (Google sign-in was abandoned)
+├── util/JwtUtil.java              # HS512 JWT sign/verify; secret from JWT_SECRET env var; 1-day expiry
 └── resources/application.properties
 ```
 
