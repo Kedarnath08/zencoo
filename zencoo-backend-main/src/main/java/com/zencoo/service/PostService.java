@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,10 +30,10 @@ public class PostService {
     @Autowired private NotificationService notificationService;
 
     @Transactional
-    public PostDto createPost(Long userId, String imageUrl, String caption) {
+    public PostDto createPost(Long userId, String imageUrl, String caption, BigDecimal price) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        Post post = postRepository.save(new Post(user, imageUrl, caption));
+        Post post = postRepository.save(new Post(user, imageUrl, caption, price));
         return toDto(post, userId);
     }
 
@@ -131,6 +132,7 @@ public class PostService {
                 author.getProfilePic(),
                 post.getImageUrl(),
                 post.getCaption(),
+                post.getPrice(),
                 post.getCreatedAt() != null ? post.getCreatedAt().format(ISO) : null,
                 postLikeRepository.countByPostId(post.getId()),
                 postCommentRepository.countByPostId(post.getId()),

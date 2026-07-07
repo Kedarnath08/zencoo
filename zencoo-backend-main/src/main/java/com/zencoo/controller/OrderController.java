@@ -30,6 +30,15 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getReceivedOrders(userId));
     }
 
+    @GetMapping("/{orderId}")
+    public ResponseEntity<?> getOrder(
+            @AuthenticationPrincipal(expression = "id") Long userId,
+            @PathVariable Long orderId
+    ) {
+        if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
+        return ResponseEntity.ok(orderService.getOrder(orderId, userId));
+    }
+
     @PostMapping
     public ResponseEntity<?> createOrder(
             @AuthenticationPrincipal(expression = "id") Long userId,
@@ -44,6 +53,7 @@ public class OrderController {
                 body.getProductName().trim(),
                 body.getProductImage(),
                 quantity,
+                body.getPrice(),
                 body.getNote());
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }

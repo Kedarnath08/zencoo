@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ public class OrderService {
 
     @Transactional
     public OrderDto createOrder(Long buyerId, Long sellerId, String productName,
-                                String productImage, int quantity, String note) {
+                                String productImage, int quantity, BigDecimal price, String note) {
         if (sellerId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "sellerId is required");
         }
@@ -40,8 +41,21 @@ public class OrderService {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
+        BigDecimal unitPrice = price != null ? price : BigDecimal.ZERO;
         Order order = orderRepository.save(
-                new Order(buyer, seller, productName, productImage, quantity, note));
+                new Order(buyer, seller, productName, productImage, quantity, unitPrice, note));
+        return toDto(order);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDto getOrder(Long orderId, Long currentUserId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        boolean isSeller = order.getSeller().getId().equals(currentUserId);
+        boolean isBuyer = order.getBuyer().getId().equals(currentUserId);
+        if (!isSeller && !isBuyer) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order");
+        }
         return toDto(order);
     }
 
@@ -149,6 +163,7 @@ public class OrderService {
                 o.getProductName(),
                 o.getProductImage(),
                 o.getQuantity(),
+                o.getUnitPrice(),
                 o.getNote(),
                 o.getStatus().name(),
                 o.getBuyer().getId(),

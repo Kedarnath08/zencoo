@@ -452,4 +452,69 @@ class AuthAndPostFlowTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unreadCount").value(2)); // Still 2, no self-notification.
     }
+
+    @Test
+    void postPriceFlowsIntoOrderAndOrderDetailIsAuthorized() throws Exception {
+        String sellerToken = registerAndGetToken("priceseller@example.com", "@priceseller");
+        long sellerId = myId(sellerToken);
+        String buyerToken = registerAndGetToken("pricebuyer@example.com", "@pricebuyer");
+
+        // A post can be listed for sale with a price.
+        String postBody = mapper.createObjectNode()
+                .put("imageUrl", "https://example.com/veggies.webp")
+                .put("caption", "Fresh veggies")
+                .put("price", 25.50)
+                .toString();
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", bearer(sellerToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.price").value(25.50));
+
+        // Ordering that item snapshots the price; total = unitPrice * quantity.
+        String orderBody = mapper.createObjectNode()
+                .put("sellerId", sellerId)
+                .put("productName", "Fresh veggies")
+                .put("quantity", 3)
+                .put("price", 25.50)
+                .toString();
+        String orderResp = mockMvc.perform(post("/api/orders")
+                        .header("Authorization", bearer(buyerToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(orderBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.unitPrice").value(25.50))
+                .andExpect(jsonPath("$.totalPrice").value(76.50))
+                .andReturn().getResponse().getContentAsString();
+        long orderId = mapper.readTree(orderResp).get("id").asLong();
+
+        // Omitting price defaults to 0 (e.g. free/negotiated items).
+        String freeOrderBody = mapper.createObjectNode()
+                .put("sellerId", sellerId)
+                .put("productName", "Free sample")
+                .put("quantity", 1)
+                .toString();
+        mockMvc.perform(post("/api/orders")
+                        .header("Authorization", bearer(buyerToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(freeOrderBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.unitPrice").value(0))
+                .andExpect(jsonPath("$.totalPrice").value(0));
+
+        // Buyer and seller can both fetch the order detail.
+        mockMvc.perform(get("/api/orders/" + orderId).header("Authorization", bearer(buyerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPrice").value(76.50));
+        mockMvc.perform(get("/api/orders/" + orderId).header("Authorization", bearer(sellerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(orderId));
+
+        // A stranger cannot view the order.
+        String strangerToken = registerAndGetToken("pricestranger@example.com", "@pricestranger");
+        mockMvc.perform(get("/api/orders/" + orderId).header("Authorization", bearer(strangerToken)))
+                .andExpect(status().isForbidden());
+
+        // A non-existent order 404s.
+        mockMvc.perform(get("/api/orders/999999").header("Authorization", bearer(buyerToken)))
+                .andExpect(status().isNotFound());
+    }
 }

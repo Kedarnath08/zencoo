@@ -1,6 +1,7 @@
 package com.zencoo.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,6 +30,10 @@ public class Order {
 
     @Column(nullable = false)
     private int quantity;
+
+    /** Price per unit, snapshotted at order time so later post price edits don't rewrite history. */
+    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal unitPrice;
 
     @Column(columnDefinition = "TEXT")
     private String note;
@@ -59,12 +64,13 @@ public class Order {
     public Order() {}
 
     public Order(User buyer, User seller, String productName, String productImage,
-                 int quantity, String note) {
+                 int quantity, BigDecimal unitPrice, String note) {
         this.buyer = buyer;
         this.seller = seller;
         this.productName = productName;
         this.productImage = productImage;
         this.quantity = quantity;
+        this.unitPrice = unitPrice;
         this.note = note;
         this.status = OrderStatus.PENDING;
     }
@@ -85,6 +91,9 @@ public class Order {
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }

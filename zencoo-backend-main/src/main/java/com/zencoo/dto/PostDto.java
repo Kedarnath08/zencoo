@@ -1,5 +1,7 @@
 package com.zencoo.dto;
 
+import java.math.BigDecimal;
+
 public class PostDto {
     private Long id;
     private Long authorId;
@@ -8,6 +10,7 @@ public class PostDto {
     private String profilePic;
     private String imageUrl;
     private String caption;
+    private BigDecimal price;
     private String createdAt;
     private long likeCount;
     private long commentCount;
@@ -16,7 +19,7 @@ public class PostDto {
     public PostDto() {}
 
     public PostDto(Long id, Long authorId, String username, String fullName, String profilePic,
-                   String imageUrl, String caption, String createdAt,
+                   String imageUrl, String caption, BigDecimal price, String createdAt,
                    long likeCount, long commentCount, boolean likedByMe) {
         this.id = id;
         this.authorId = authorId;
@@ -25,6 +28,7 @@ public class PostDto {
         this.profilePic = profilePic;
         this.imageUrl = imageUrl;
         this.caption = caption;
+        this.price = price;
         this.createdAt = createdAt;
         this.likeCount = likeCount;
         this.commentCount = commentCount;
@@ -51,6 +55,9 @@ public class PostDto {
 
     public String getCaption() { return caption; }
     public void setCaption(String caption) { this.caption = caption; }
+
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

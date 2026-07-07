@@ -52,7 +52,7 @@ public class PostController {
     ) {
         if (userId == null) return ResponseEntity.status(401).body("Unauthorized");
         String caption = body.getCaption() == null ? "" : body.getCaption();
-        PostDto created = postService.createPost(userId, body.getImageUrl(), caption);
+        PostDto created = postService.createPost(userId, body.getImageUrl(), caption, body.getPrice());
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 

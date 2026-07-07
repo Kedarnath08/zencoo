@@ -1,5 +1,7 @@
 package com.zencoo.dto;
 
+import java.math.BigDecimal;
+
 /**
  * Unified order representation used by both the "placed" and "received" lists.
  * The client shows the seller for placed orders and the buyer for received ones.
@@ -9,6 +11,8 @@ public class OrderDto {
     private String productName;
     private String productImage;
     private int quantity;
+    private BigDecimal unitPrice;
+    private BigDecimal totalPrice;
     private String note;
     private String status;
 
@@ -22,13 +26,16 @@ public class OrderDto {
 
     public OrderDto() {}
 
-    public OrderDto(Long id, String productName, String productImage, int quantity, String note,
+    public OrderDto(Long id, String productName, String productImage, int quantity,
+                    BigDecimal unitPrice, String note,
                     String status, Long buyerId, String buyerName, Long sellerId, String sellerName,
                     String createdAt, String updatedAt) {
         this.id = id;
         this.productName = productName;
         this.productImage = productImage;
         this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.totalPrice = unitPrice != null ? unitPrice.multiply(BigDecimal.valueOf(quantity)) : null;
         this.note = note;
         this.status = status;
         this.buyerId = buyerId;
@@ -50,6 +57,12 @@ public class OrderDto {
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+
+    public BigDecimal getTotalPrice() { return totalPrice; }
+    public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
 
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }

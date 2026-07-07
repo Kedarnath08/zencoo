@@ -1,6 +1,7 @@
 package com.zencoo.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,6 +22,10 @@ public class Post {
     @Column(columnDefinition = "TEXT")
     private String caption;
 
+    /** Optional asking price; null means this post isn't listed for sale. */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal price;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -31,10 +36,11 @@ public class Post {
 
     public Post() {}
 
-    public Post(User user, String imageUrl, String caption) {
+    public Post(User user, String imageUrl, String caption, BigDecimal price) {
         this.user = user;
         this.imageUrl = imageUrl;
         this.caption = caption;
+        this.price = price;
     }
 
     public Long getId() { return id; }
@@ -48,6 +54,9 @@ public class Post {
 
     public String getCaption() { return caption; }
     public void setCaption(String caption) { this.caption = caption; }
+
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }
