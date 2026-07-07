@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import FeedPostCard from "../components/FeedPostCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles, getFeedContainerStyle } from "../styles/feedStyles";
@@ -28,8 +28,12 @@ import {
 } from "../api/posts";
 import { createOrder } from "../api/orders";
 import { timeAgo } from "../utils/time";
+import { fetchUnreadCount } from "../api/notifications";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { FeedStackParamList } from "../navigation/FeedStack";
 
 const FeedScreen: React.FC = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
   const [commentController, setCommentController] = useState<string>("");
   const [showCommentsModal, setShowCommentsModal] = useState<boolean>(false);
   const [activePostId, setActivePostId] = useState<number | null>(null);
@@ -40,7 +44,26 @@ const FeedScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const insets = useSafeAreaInsets();
+
+  // Load unread notification count on focus
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        try {
+          const count = await fetchUnreadCount();
+          if (active) setUnreadCount(count);
+        } catch {
+          if (active) setUnreadCount(0);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const loadFeed = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -213,8 +236,36 @@ const FeedScreen: React.FC = () => {
           ]}
         />
         <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.notificationBtn}>
+        <TouchableOpacity
+          style={styles.notificationBtn}
+          onPress={() => navigation.navigate("Notifications")}
+        >
           <Icon name="bell-outline" size={30} color="#FFA500" />
+          {unreadCount > 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                backgroundColor: "#FF6B6B",
+                borderRadius: 10,
+                width: 20,
+                height: 20,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: "bold",
+                }}
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 

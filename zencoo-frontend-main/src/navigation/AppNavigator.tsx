@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 import ResidentsStack from "./ResidentsStack";
-import Feed from "../screens/Feed";
+import FeedStack from "./FeedStack";
 import BottomNavBar from "../components/BottomNavBar";
 import ProfileStack from "./ProfileStack";
 import PostStack from "./PostStack";
@@ -25,7 +25,7 @@ export default function AppNavigator() {
       initialRouteName="Feed"
       tabBar={(props) => <BottomNavBar {...props} />}
     >
-      <Tab.Screen name="Feed" component={Feed} />
+      <Tab.Screen name="Feed" component={FeedStack} />
       <Tab.Screen name="Residents" component={ResidentsStack} />
       <Tab.Screen name="NewPost" component={PostStack} />
       <Tab.Screen name="Orders" component={Orders} />
