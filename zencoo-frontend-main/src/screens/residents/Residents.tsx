@@ -119,13 +119,7 @@ const Residents = () => {
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() =>
-                  navigation.push("OthersProfile", {
-                    id: String(item.id),
-                    displayName: item.displayName,
-                    username: item.username,
-                    wing: item.wing,
-                    door: item.door,
-                  })
+                  navigation.push("OthersProfile", { id: String(item.id) })
                 }
                 activeOpacity={0.7}
               >

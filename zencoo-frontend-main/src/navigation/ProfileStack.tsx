@@ -7,13 +7,7 @@ import FollowList from "../screens/FollowList";
 
 export type ProfileStackParamList = {
   ProfileMain: undefined;
-  OthersProfile: {
-    id: string;
-    displayName: string;
-    username: string;
-    wing: string;
-    door: string;
-  };
+  OthersProfile: { id: string };
   PostDetail: { postId: number; isOwn?: boolean };
   FollowList: { userId: number; initialTab?: "followers" | "following" };
 };

@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
-import AuthNavigator from "./src/navigation/AuthNavigator"; // <-- use AuthNavigator
+import AuthNavigator from "./src/navigation/AuthNavigator";
 import { AuthProvider } from "./src/context/AuthContext";
 
 export default function App() {

@@ -28,7 +28,7 @@ const PostPreviewScreen: React.FC = () => {
   const [price, setPrice] = useState("");
   const [priceFocused, setPriceFocused] = useState(false);
   const [inputHeight, setInputHeight] = useState(60);
-  const [captionFocused, setCaptionFocused] = useState(false); // <-- add this
+  const [captionFocused, setCaptionFocused] = useState(false);
   const [posting, setPosting] = useState(false);
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -189,8 +189,8 @@ const PostPreviewScreen: React.FC = () => {
                   onContentSizeChange={(e) =>
                     setInputHeight(e.nativeEvent.contentSize.height)
                   }
-                  onFocus={() => setCaptionFocused(true)} // <-- set focus
-                  onBlur={() => setCaptionFocused(false)} // <-- unset focus
+                  onFocus={() => setCaptionFocused(true)}
+                  onBlur={() => setCaptionFocused(false)}
                 />
                 {caption.length > 0 && (
                   <TouchableOpacity

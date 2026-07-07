@@ -208,7 +208,7 @@ export default function SignUpStepThree({ route, navigation }: any) {
                   !!errors.username ||
                   !unique ||
                   isSubmitting ||
-                  checking) && { opacity: 0.5 }, // <-- add this
+                  checking) && { opacity: 0.5 },
               ]}
               onPress={handleSubmit as any}
               disabled={
@@ -216,7 +216,7 @@ export default function SignUpStepThree({ route, navigation }: any) {
                 !!errors.username ||
                 !unique ||
                 isSubmitting ||
-                checking // <-- add this
+                checking
               }
             >
               {isSubmitting ? (

@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
     marginBottom: 24,
-    shadowColor: "#ff8c00", // <-- updated color for shadow
+    shadowColor: "#ff8c00",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
