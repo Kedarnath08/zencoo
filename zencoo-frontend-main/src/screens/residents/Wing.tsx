@@ -1,8 +1,8 @@
 import React from "react";
 import { FlatList, TouchableOpacity, Text, View } from "react-native";
-import ResidentsIcon from "../../../../assets/icons/Residents.svg";
+import ResidentsIcon from "../../../assets/icons/Residents.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { styles } from "../../../styles/wingsStyles";
+import { styles } from "../../styles/wingsStyles";
 
 const WINGS = [
   { label: "Wing 1", value: "1" },

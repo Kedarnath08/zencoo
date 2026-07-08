@@ -1,7 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Orders from "../screens/Orders";
-import OrderDetail from "../screens/OrderDetail";
+import Orders from "../screens/orders/Orders";
+import OrderDetail from "../screens/orders/OrderDetail";
 import OthersProfileScreen from "../screens/userProfile/OthersProfile";
 
 export type OrdersStackParamList = {

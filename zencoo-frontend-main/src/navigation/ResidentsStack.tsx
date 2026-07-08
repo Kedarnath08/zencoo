@@ -1,6 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Wing from "../screens/residents/wings/Wing";
+import Wing from "../screens/residents/Wing";
 import Residents from "../screens/residents/Residents";
 import OthersProfileScreen from "../screens/userProfile/OthersProfile";
 import PostDetail from "../screens/PostDetail";

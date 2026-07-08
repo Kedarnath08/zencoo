@@ -2,22 +2,22 @@ import React, { useCallback, useRef, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { OrdersStackParamList } from "../navigation/OrdersStack";
-import styles from "../styles/ordersStyles";
-import PlacedOrderCard from "../components/PlacedOrderCard";
-import ReceivedOrderCard from "../components/RecievedOrderCard";
+import type { OrdersStackParamList } from "../../navigation/OrdersStack";
+import styles from "../../styles/ordersStyles";
+import PlacedOrderCard from "../../components/PlacedOrderCard";
+import ReceivedOrderCard from "../../components/RecievedOrderCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ChecklistIcon from "../../assets/icons/list.svg";
+import ChecklistIcon from "../../../assets/icons/list.svg";
 import {
   fetchPlacedOrders,
   fetchReceivedOrders,
   updateOrderStatus,
   type Order,
   type OrderStatus,
-} from "../api/orders";
-import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
-import { usePaginatedList } from "../hooks/usePaginatedList";
-import LoadingView from "../components/LoadingView";
+} from "../../api/orders";
+import { useRefreshOnFocus } from "../../hooks/useRefreshOnFocus";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
+import LoadingView from "../../components/LoadingView";
 
 // Sort received orders: PENDING first, then ACCEPTED, then the rest; newest first within a group.
 const receivedStatusRank = (status: OrderStatus) => {

@@ -13,17 +13,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { OrdersStackParamList } from "../navigation/OrdersStack";
-import { fetchOrder, updateOrderStatus, type Order } from "../api/orders";
-import { formatDateTime } from "../utils/time";
-import { formatPrice } from "../utils/currency";
-import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
-import ScreenHeader from "../components/ScreenHeader";
-import LoadingView from "../components/LoadingView";
-import StatusBadge from "../components/StatusBadge";
-import { colors } from "../theme/colors";
+import type { OrdersStackParamList } from "../../navigation/OrdersStack";
+import { fetchOrder, updateOrderStatus, type Order } from "../../api/orders";
+import { formatDateTime } from "../../utils/time";
+import { formatPrice } from "../../utils/currency";
+import { useRefreshOnFocus } from "../../hooks/useRefreshOnFocus";
+import ScreenHeader from "../../components/ScreenHeader";
+import LoadingView from "../../components/LoadingView";
+import StatusBadge from "../../components/StatusBadge";
+import { colors } from "../../theme/colors";
 
-const placeholder = require("../../assets/images/profile-placeholder.jpg");
+const placeholder = require("../../../assets/images/profile-placeholder.jpg");
 
 const LEAF_GREEN = colors.success;
 const RED = colors.danger;
