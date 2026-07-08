@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -14,18 +14,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import FeedPostCard from "../components/FeedPostCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles, getFeedContainerStyle } from "../styles/feedStyles";
-import {
-  fetchFeed,
-  toggleLike,
-  fetchComments,
-  addComment,
-  type FeedPost,
-  type PostComment,
-} from "../api/posts";
+import { fetchFeed, type FeedPost } from "../api/posts";
 import { createOrder } from "../api/orders";
 import { timeAgo } from "../utils/time";
 import { formatPrice } from "../utils/currency";
@@ -33,139 +27,75 @@ import { fetchUnreadCount } from "../api/notifications";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/FeedStack";
 import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
-import { usePaginatedList } from "../hooks/usePaginatedList";
+import { useComments, flattenComments } from "../hooks/useComments";
+import { useAddComment } from "../hooks/useAddComment";
+import { useLikePost } from "../hooks/useLikePost";
+import { queryKeys } from "../api/queryKeys";
 import { colors } from "../theme/colors";
 import LoadingView from "../components/LoadingView";
 
+const PAGE_SIZE = 20;
+
 const FeedScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
+  const qc = useQueryClient();
   const [commentController, setCommentController] = useState<string>("");
   const [showCommentsModal, setShowCommentsModal] = useState<boolean>(false);
   const [activePostId, setActivePostId] = useState<number | null>(null);
-  const [comments, setComments] = useState<PostComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState<boolean>(false);
-  const [postingComment, setPostingComment] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const insets = useSafeAreaInsets();
 
-  const loadFeedPage = useCallback(async (page: number, size: number) => {
-    try {
-      const data = await fetchFeed(page, size);
-      setError(null);
-      return data;
-    } catch (err) {
-      setError("Couldn't load the feed. Pull down to retry.");
-      throw err;
-    }
-  }, []);
+  const feedQuery = useInfiniteQuery({
+    queryKey: queryKeys.feed(),
+    queryFn: ({ pageParam }) => fetchFeed(pageParam, PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+  });
+  useRefreshOnFocus(() => {
+    feedQuery.refetch();
+  });
+  const posts = feedQuery.data?.pages.flat() ?? [];
+  const loadingError = feedQuery.isError
+    ? "Couldn't load the feed. Pull down to retry."
+    : null;
 
-  const {
-    items: posts,
-    setItems: setPosts,
-    loading,
-    refreshing,
-    loadingMore,
-    hasMore,
-    reset,
-    loadMore,
-  } = usePaginatedList<FeedPost>(loadFeedPage, 20);
+  const unreadQuery = useQuery({
+    queryKey: queryKeys.unreadCount(),
+    queryFn: fetchUnreadCount,
+  });
+  useRefreshOnFocus(() => {
+    qc.invalidateQueries({ queryKey: queryKeys.unreadCount() });
+  });
+  const unreadCount = unreadQuery.data ?? 0;
 
-  // Load unread notification count on focus
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      (async () => {
-        try {
-          const count = await fetchUnreadCount();
-          if (active) setUnreadCount(count);
-        } catch {
-          if (active) setUnreadCount(0);
-        }
-      })();
-      return () => {
-        active = false;
-      };
-    }, [])
-  );
+  const likeMutation = useLikePost();
+  const commentsQuery = useComments(activePostId ?? -1, showCommentsModal && activePostId != null);
+  const addCommentMutation = useAddComment(activePostId ?? -1);
+  const comments = flattenComments(commentsQuery.data);
 
-  // Refresh whenever the tab regains focus (e.g. after creating a post).
-  useRefreshOnFocus(reset);
-
-  const handleToggleLike = async (postId: number) => {
-    // Optimistic update
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              likedByMe: !p.likedByMe,
-              likeCount: p.likeCount + (p.likedByMe ? -1 : 1),
-            }
-          : p
-      )
-    );
-    try {
-      const updated = await toggleLike(postId);
-      setPosts((prev) => prev.map((p) => (p.id === postId ? updated : p)));
-    } catch {
-      // Revert on failure
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                likedByMe: !p.likedByMe,
-                likeCount: p.likeCount + (p.likedByMe ? -1 : 1),
-              }
-            : p
-        )
-      );
-      Alert.alert("Couldn't update like. Please try again.");
-    }
+  const handleToggleLike = (postId: number) => {
+    likeMutation.mutate(postId, {
+      onError: () => Alert.alert("Couldn't update like. Please try again."),
+    });
   };
 
-  const openComments = async (postId: number) => {
+  const openComments = (postId: number) => {
     setActivePostId(postId);
     setShowCommentsModal(true);
-    setComments([]);
-    setCommentsLoading(true);
-    try {
-      setComments(await fetchComments(postId));
-    } catch {
-      Alert.alert("Couldn't load comments.");
-    } finally {
-      setCommentsLoading(false);
-    }
   };
 
-  const submitComment = async () => {
+  const submitComment = () => {
     const text = commentController.trim();
     if (!text || activePostId == null) return;
-    setPostingComment(true);
-    try {
-      const created = await addComment(activePostId, text);
-      setComments((prev) => [...prev, created]);
-      setCommentController("");
-      // keep the feed's comment count in sync
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === activePostId
-            ? { ...p, commentCount: p.commentCount + 1 }
-            : p
-        )
-      );
-    } catch {
-      Alert.alert("Couldn't post comment. Please try again.");
-    } finally {
-      setPostingComment(false);
-    }
+    addCommentMutation.mutate(text, {
+      onSuccess: () => setCommentController(""),
+      onError: () => Alert.alert("Couldn't post comment. Please try again."),
+    });
   };
 
   const closeComments = () => {
     setShowCommentsModal(false);
     setActivePostId(null);
-    setComments([]);
     setCommentController("");
   };
 
@@ -215,7 +145,7 @@ const FeedScreen: React.FC = () => {
     />
   );
 
-  if (loading) {
+  if (feedQuery.isPending) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -282,17 +212,23 @@ const FeedScreen: React.FC = () => {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={getFeedContainerStyle(insets.bottom)}
         showsVerticalScrollIndicator={false}
-        refreshing={refreshing}
-        onRefresh={reset}
-        onEndReached={loadMore}
+        refreshing={feedQuery.isRefetching && !feedQuery.isFetchingNextPage}
+        onRefresh={() => feedQuery.refetch()}
+        onEndReached={() => {
+          if (feedQuery.hasNextPage && !feedQuery.isFetchingNextPage) {
+            feedQuery.fetchNextPage();
+          }
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loadingMore ? <LoadingView color="#FFA500" style={{ marginVertical: 16 }} /> : null
+          feedQuery.isFetchingNextPage ? (
+            <LoadingView color="#FFA500" style={{ marginVertical: 16 }} />
+          ) : null
         }
         ListEmptyComponent={
           <View style={styles.centered}>
             <Text style={{ color: "#888", marginTop: 40 }}>
-              {error ?? "No posts yet. Be the first to share!"}
+              {loadingError ?? "No posts yet. Be the first to share!"}
             </Text>
           </View>
         }
@@ -311,7 +247,7 @@ const FeedScreen: React.FC = () => {
               <Icon name="close" size={24} style={styles.closeButton} />
             </TouchableOpacity>
           </View>
-          {commentsLoading ? (
+          {commentsQuery.isLoading ? (
             <View style={styles.centered}>
               <ActivityIndicator size="small" color="#FFA500" />
             </View>
@@ -350,9 +286,9 @@ const FeedScreen: React.FC = () => {
             <TouchableOpacity
               onPress={submitComment}
               style={styles.sendButton}
-              disabled={postingComment}
+              disabled={addCommentMutation.isPending}
             >
-              {postingComment ? (
+              {addCommentMutation.isPending ? (
                 <ActivityIndicator size="small" color="#FFA500" />
               ) : (
                 <Icon name="send" size={22} style={styles.sendIcon} />

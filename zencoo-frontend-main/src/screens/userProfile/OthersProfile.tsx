@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -10,11 +10,13 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { styles } from "../../styles/othersProfileStyles";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ResidentsStackParamList } from "../../navigation/ResidentsStack";
-import { fetchResident, type ResidentProfile } from "../../api/residents";
+import { fetchResident } from "../../api/residents";
 import { followUser, unfollowUser } from "../../api/follow";
+import { queryKeys } from "../../api/queryKeys";
 import { Alert } from "react-native";
 import Avatar from "../../components/Avatar";
 import ProfileStatsRow from "../../components/ProfileStatsRow";
@@ -28,53 +30,32 @@ const OthersProfileScreen: React.FC = () => {
     useNavigation<NativeStackNavigationProp<ResidentsStackParamList>>();
   const insets = useSafeAreaInsets();
   const route = useRoute();
+  const { id } = route.params as { id: string };
+  const qc = useQueryClient();
 
-  const [profile, setProfile] = useState<ResidentProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [followBusy, setFollowBusy] = useState(false);
+  const profileQuery = useQuery({
+    queryKey: queryKeys.resident(id),
+    queryFn: () => fetchResident(id),
+  });
+  const profile = profileQuery.data ?? null;
+  const loading = profileQuery.isPending;
 
-  const toggleFollow = async () => {
+  const followMutation = useMutation({
+    mutationFn: () =>
+      profile!.followedByMe ? unfollowUser(profile!.id) : followUser(profile!.id),
+    onSuccess: (state) =>
+      qc.setQueryData(queryKeys.resident(id), (old) =>
+        old ? { ...old, ...state } : old
+      ),
+  });
+  const followBusy = followMutation.isPending;
+
+  const toggleFollow = () => {
     if (!profile || followBusy) return;
-    setFollowBusy(true);
-    try {
-      const state = profile.followedByMe
-        ? await unfollowUser(profile.id)
-        : await followUser(profile.id);
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              followedByMe: state.followedByMe,
-              followersCount: state.followersCount,
-              followingCount: state.followingCount,
-            }
-          : prev
-      );
-    } catch {
-      Alert.alert("Couldn't update follow. Please try again.");
-    } finally {
-      setFollowBusy(false);
-    }
+    followMutation.mutate(undefined, {
+      onError: () => Alert.alert("Couldn't update follow. Please try again."),
+    });
   };
-
-  useEffect(() => {
-    const { id } = route.params as { id: string };
-    let active = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchResident(id);
-        if (active) setProfile(data);
-      } catch (err) {
-        if (active) setProfile(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [route.params]);
 
   if (loading) {
     return (

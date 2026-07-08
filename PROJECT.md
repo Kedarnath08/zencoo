@@ -25,7 +25,8 @@ A production-hardening pass (phases 1–6) and feature-completion pass (resident
 
 - ✅ **Real, wired to backend:** Sign-up (auto-login), login (BCrypt + JWT), **Google Sign-In** (sign in or onboard with a Google account, own `com.zencoo.google` backend package + `screens/userAuth/google/` frontend folder), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
 - ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`) with an **order-detail screen** (status timeline, price, role-aware actions); **post pricing** (optional price on a post, snapshotted into the order at purchase time so later edits don't rewrite history); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid; and a **real-time notifications system** (bell icon with unread badge, tap → notifications screen, auto-created for likes/comments/follows/order-status-changes).
-- ✅ **Pagination**: feed, residents directory, post comments, and orders (placed/received) are all infinite-scroll (`page`/`size` query params backend-side, a shared `usePaginatedList` hook frontend-side) instead of loading unbounded lists.
+- ✅ **Pagination**: feed, residents directory, post comments, and orders (placed/received) are all infinite-scroll (`page`/`size` query params backend-side, `useInfiniteQuery` frontend-side) instead of loading unbounded lists.
+- ✅ **Server-state caching**: the frontend adopted `@tanstack/react-query` as a data-fetching/caching layer (not a global state store — the app still has no Redux/MobX/Zustand, deliberately) — see "Data layer" under the frontend section below.
 - 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Only messaging remains — see below.
 - ⚠️ **Google Sign-In is code-complete but not yet live-tested** — needs the user's own Google Cloud Console OAuth client IDs and a running local MySQL instance (both explicitly deferred to a later step).
 
@@ -151,14 +152,24 @@ com.zencoo
 Expo (managed-ish, `newArchEnabled: true`) React Native app in TypeScript. Entry `index.ts` → `App.tsx` → `AuthNavigator`. Android package `com.kedarnath08.zfrontend`. Uses EAS (project id in `app.json`).
 
 ### Key libraries
-`@react-navigation` (bottom-tabs + native-stack), `axios`, `formik` + `yup` (forms/validation), `expo-image-picker` + `expo-image-manipulator` (posting & avatar), `expo-secure-store` (JWT storage), `react-native-svg` (icons), `expo-auth-session` + `expo-web-browser` (Google Sign-In, PKCE-based).
+`@react-navigation` (bottom-tabs + native-stack), `axios`, `@tanstack/react-query` (server-state caching), `formik` + `yup` (forms/validation), `expo-image-picker` + `expo-image-manipulator` (posting & avatar), `expo-secure-store` (JWT storage), `react-native-svg` (icons), `expo-auth-session` + `expo-web-browser` (Google Sign-In, PKCE-based).
 
 ### Auth architecture (post-hardening)
-- `src/context/AuthContext.tsx` — holds the JWT, persists it in SecureStore, reads it on boot (auto-login), and auto-logs-out on any 401 from the API. Exposes `signIn(token)` / `signOut()` / `isAuthenticated` / `ready`.
+- `src/context/AuthContext.tsx` — holds the JWT, persists it in SecureStore, reads it on boot (auto-login), and auto-logs-out on any 401 from the API. Exposes `signIn(token)` / `signOut()` / `isAuthenticated` / `ready`. `signOut` also calls `queryClient.clear()` so no cached server data survives a logout.
 - `src/api/axiosInstance.ts` — the one axios instance every call uses; attaches the Bearer token and routes 401s to the auth layer.
 - `src/config/env.ts` — resolves `API_BASE_URL` (from `EXPO_PUBLIC_API_URL`, else a platform-aware localhost default) and the Cloudinary config.
 - `src/utils/secureStore.ts` — `saveJWT` / `getJWT` / `deleteJWT`.
 - `src/utils/uploadImage.ts` — shared "compress to WEBP + upload to Cloudinary" used by both the posting screen and the profile-pic hook.
+
+### Data layer (TanStack Query)
+The app has **no global app-state library** (no Redux/MobX/Zustand) — that was a deliberate architectural review finding: this app's state is ~95% cached server data, not client-only UI state, so a query-caching layer fits better than a global store. Every data-fetching screen uses `@tanstack/react-query`:
+- `src/api/queryClient.ts` — the `QueryClient` singleton (20s default `staleTime`), provided via `QueryClientProvider` in `App.tsx`, which also wires RN's `focusManager` to `AppState` (covers app background↔foreground; React Navigation tab/stack focus is handled per-screen, see below).
+- `src/api/queryKeys.ts` — single source of truth for every cache key (`feed`, `post`, `comments`, `myPosts`, `residents`, `resident`, `ordersPlaced`, `ordersReceived`, `order`, `followers`, `following`, `notifications`, `unreadCount`, `myProfile`) — no hand-written key arrays elsewhere.
+- `src/api/postsCache.ts` / `src/api/ordersCache.ts` — `patchPostInCache`/`removePostFromCache`/`patchOrderInCache` update a post or order everywhere it's cached (its own entry, every loaded page of the relevant infinite query, `myPosts`) in one call. This is what makes a like, comment, or order-status-change instantly visible on every screen showing that data — e.g. liking a post in `Feed.tsx` updates the same post if it's also open in `PostDetail.tsx`; an order status change from either `Orders.tsx` or `OrderDetail.tsx` updates both.
+- `src/hooks/useComments.ts`, `useAddComment.ts`, `useLikePost.ts`, `useUpdateOrderStatus.ts` — shared query/mutation hooks reused verbatim across the screens that touch the same data.
+- Lists use `useInfiniteQuery` (feed, residents, orders×2, comments) instead of a hand-rolled pagination hook; `getNextPageParam` uses the same "returned page shorter than page size ⇒ no more pages" heuristic the backend's flat-array-per-page convention requires (no total-count envelope).
+- **Focus-refetch**: `useInfiniteQuery`'s `refetch()` re-fetches all currently-loaded pages (not just page 0), so returning to a list after navigating away preserves scroll depth instead of collapsing back to page 1. Feed, Orders, OrderDetail, and the unread-count badge explicitly refetch on screen focus (via `useRefreshOnFocus`, see below); other screens (Residents, PostDetail, OthersProfile, FollowList, MyProfile) rely on the passive `staleTime`.
+- `src/hooks/useRefreshOnFocus.ts` — re-runs a callback on React Navigation focus; reads the callback through a ref rather than as a `useFocusEffect` dependency, since React Navigation re-invokes its effect whenever the callback's identity changes while a screen stays focused — a footgun for non-memoized callbacks like Query's `refetch`.
 
 ### Navigation flow
 ```
@@ -208,6 +219,7 @@ App.tsx  (wraps everything in <AuthProvider>)
 
 ### API layer (`src/api/`)
 - `axiosInstance.ts` — the one axios instance every call goes through: Bearer-token interceptor + 401 handler routed to `AuthContext`.
+- `queryClient.ts` / `queryKeys.ts` / `postsCache.ts` / `ordersCache.ts` — the TanStack Query data layer, see "Data layer" above.
 - `user.ts` — auth (`checkEmailRegistered`, `checkUsernameUnique`, `registerUser`, `loginUser`) + own profile (`fetchMyProfile`, `updateBio`, `updateHometown`, `updateProfilePic`).
 - `googleAuth.ts` — `loginWithGoogle(idToken)`, `completeGoogleSignup(idToken, username, doorNumber, community)`.
 - `posts.ts` — `fetchFeed`, `fetchPost`, `fetchUserPosts`, `createPost`, `deletePost`, `toggleLike`, `fetchComments`, `addComment`.
@@ -242,13 +254,13 @@ All screen styles live in `src/styles/*.ts` as `StyleSheet` objects (one file pe
 
 ## Suggested next steps (if you resume this)
 
-Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen), ✅ backend efficiency pass + pagination (feed/residents/comments/orders), ✅ screens folder restructuring, ✅ Google Sign-In (code-complete, not yet live-tested). Remaining:
+Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen), ✅ backend efficiency pass + pagination (feed/residents/comments/orders), ✅ screens folder restructuring, ✅ Google Sign-In (code-complete, not yet live-tested), ✅ TanStack Query adoption (server-state caching, cross-screen cache sync, typecheck-verified only). Remaining:
 
-1. **Google Sign-In needs manual setup to go live**: Google Cloud Console OAuth client IDs (Web/iOS/Android) + a local MySQL instance — both on the user to set up next.
+1. **Google Sign-In needs manual setup to go live**: Google Cloud Console OAuth client IDs (Web/iOS/Android) + a local MySQL instance — both on the user to set up next. The same MySQL setup is also the first chance to manually exercise the new Query caching layer in a running app.
 2. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
 
 See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the current feature-by-feature status dashboard.
 
 ---
 
-*Originally recovered 2026-07-05; updated 2026-07-08 after a production-hardening pass, follow/friends system, dead-code cleanup, post-detail/followers-list screens, backend efficiency + pagination pass, screens folder restructuring, and Google Sign-In. Owner: kedarnath08 (Expo). If details here drift from the code, trust the code.*
+*Originally recovered 2026-07-05; updated 2026-07-08 after a production-hardening pass, follow/friends system, dead-code cleanup, post-detail/followers-list screens, backend efficiency + pagination pass, screens folder restructuring, Google Sign-In, and TanStack Query adoption. Owner: kedarnath08 (Expo). If details here drift from the code, trust the code.*

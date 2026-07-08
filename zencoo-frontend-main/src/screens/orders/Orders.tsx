@@ -1,7 +1,8 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { OrdersStackParamList } from "../../navigation/OrdersStack";
 import styles from "../../styles/ordersStyles";
 import PlacedOrderCard from "../../components/PlacedOrderCard";
@@ -11,13 +12,14 @@ import ChecklistIcon from "../../../assets/icons/list.svg";
 import {
   fetchPlacedOrders,
   fetchReceivedOrders,
-  updateOrderStatus,
-  type Order,
   type OrderStatus,
 } from "../../api/orders";
 import { useRefreshOnFocus } from "../../hooks/useRefreshOnFocus";
-import { usePaginatedList } from "../../hooks/usePaginatedList";
+import { useUpdateOrderStatus } from "../../hooks/useUpdateOrderStatus";
+import { queryKeys } from "../../api/queryKeys";
 import LoadingView from "../../components/LoadingView";
+
+const PAGE_SIZE = 20;
 
 // Sort received orders: PENDING first, then ACCEPTED, then the rest; newest first within a group.
 const receivedStatusRank = (status: OrderStatus) => {
@@ -32,77 +34,55 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState<"placed" | "received">("placed");
   const insets = useSafeAreaInsets();
 
-  // Tracks whether either list's fetch failed during the current loadOrders() call,
-  // so we show one combined alert instead of one per list (matching prior behavior).
+  const placedQuery = useInfiniteQuery({
+    queryKey: queryKeys.ordersPlaced(),
+    queryFn: ({ pageParam }) => fetchPlacedOrders(pageParam, PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+  });
+
+  const receivedQuery = useInfiniteQuery({
+    queryKey: queryKeys.ordersReceived(),
+    queryFn: ({ pageParam }) => fetchReceivedOrders(pageParam, PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+  });
+
+  useRefreshOnFocus(() => {
+    placedQuery.refetch();
+    receivedQuery.refetch();
+  });
+
+  // Show one combined alert (not one per list) whenever either list enters
+  // an error state, matching the prior hadErrorRef-based behavior.
   const hadErrorRef = useRef(false);
-
-  const fetchPlacedPage = useCallback(async (page: number, size: number) => {
-    try {
-      return await fetchPlacedOrders(page, size);
-    } catch (err) {
-      hadErrorRef.current = true;
-      throw err;
-    }
-  }, []);
-
-  const fetchReceivedPage = useCallback(async (page: number, size: number) => {
-    try {
-      return await fetchReceivedOrders(page, size);
-    } catch (err) {
-      hadErrorRef.current = true;
-      throw err;
-    }
-  }, []);
-
-  const {
-    items: placed,
-    setItems: setPlaced,
-    loading: loadingPlaced,
-    loadingMore: loadingMorePlaced,
-    reset: resetPlaced,
-    loadMore: loadMorePlaced,
-  } = usePaginatedList<Order>(fetchPlacedPage, 20);
-
-  const {
-    items: received,
-    setItems: setReceived,
-    loading: loadingReceived,
-    loadingMore: loadingMoreReceived,
-    reset: resetReceived,
-    loadMore: loadMoreReceived,
-  } = usePaginatedList<Order>(fetchReceivedPage, 20);
-
-  const loading = loadingPlaced || loadingReceived;
-
-  const loadOrders = useCallback(async () => {
-    hadErrorRef.current = false;
-    await Promise.all([resetPlaced(), resetReceived()]);
-    if (hadErrorRef.current) {
+  useEffect(() => {
+    const hasError = placedQuery.isError || receivedQuery.isError;
+    if (hasError && !hadErrorRef.current) {
       Alert.alert("Couldn't load orders. Please try again.");
     }
-  }, [resetPlaced, resetReceived]);
+    hadErrorRef.current = hasError;
+  }, [placedQuery.isError, receivedQuery.isError]);
 
-  useRefreshOnFocus(loadOrders);
+  const loading = placedQuery.isPending || receivedQuery.isPending;
+  const placed = placedQuery.data?.pages.flat() ?? [];
+  const received = receivedQuery.data?.pages.flat() ?? [];
 
-  const applyUpdated = (updated: Order) => {
-    setPlaced((prev) =>
-      prev.map((o) => (o.id === updated.id ? updated : o))
+  const updateStatus = useUpdateOrderStatus();
+
+  const changeStatus = (orderId: number, status: OrderStatus) => {
+    updateStatus.mutate(
+      { orderId, status },
+      {
+        onError: (err: any) =>
+          Alert.alert(
+            "Update failed",
+            err?.response?.data?.message ?? "Please try again."
+          ),
+      }
     );
-    setReceived((prev) =>
-      prev.map((o) => (o.id === updated.id ? updated : o))
-    );
-  };
-
-  const changeStatus = async (orderId: number, status: OrderStatus) => {
-    try {
-      const updated = await updateOrderStatus(orderId, status);
-      applyUpdated(updated);
-    } catch (err: any) {
-      Alert.alert(
-        "Update failed",
-        err?.response?.data?.message ?? "Please try again."
-      );
-    }
   };
 
   const confirmCancelPlaced = (orderId: number) => {
@@ -151,10 +131,16 @@ const Orders = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No placed orders.</Text>
         }
-        onEndReached={loadMorePlaced}
+        onEndReached={() => {
+          if (placedQuery.hasNextPage && !placedQuery.isFetchingNextPage) {
+            placedQuery.fetchNextPage();
+          }
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loadingMorePlaced ? <LoadingView style={{ marginVertical: 16 }} /> : null
+          placedQuery.isFetchingNextPage ? (
+            <LoadingView style={{ marginVertical: 16 }} />
+          ) : null
         }
         showsVerticalScrollIndicator={false}
       />
@@ -196,10 +182,16 @@ const Orders = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No received orders.</Text>
         }
-        onEndReached={loadMoreReceived}
+        onEndReached={() => {
+          if (receivedQuery.hasNextPage && !receivedQuery.isFetchingNextPage) {
+            receivedQuery.fetchNextPage();
+          }
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loadingMoreReceived ? <LoadingView style={{ marginVertical: 16 }} /> : null
+          receivedQuery.isFetchingNextPage ? (
+            <LoadingView style={{ marginVertical: 16 }} />
+          ) : null
         }
         showsVerticalScrollIndicator={false}
       />

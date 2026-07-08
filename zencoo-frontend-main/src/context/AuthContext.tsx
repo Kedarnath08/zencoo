@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { saveJWT, getJWT, deleteJWT } from "../utils/secureStore";
 import { setUnauthorizedHandler } from "../api/axiosInstance";
+import { queryClient } from "../api/queryClient";
 
 interface AuthContextValue {
   /** True once the initial token check has finished. */
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await deleteJWT();
     setToken(null);
+    queryClient.clear();
   }, []);
 
   // Load the persisted token once on boot.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchNotifications, markAsRead, Notification } from "../api/notifications";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/FeedStack";
+import { useRefreshOnFocus } from "../hooks/useRefreshOnFocus";
+import { queryKeys } from "../api/queryKeys";
 import ScreenHeader from "../components/ScreenHeader";
 import LoadingView from "../components/LoadingView";
 import EmptyState from "../components/EmptyState";
@@ -21,35 +24,33 @@ type NavigationProp = NativeStackNavigationProp<FeedStackParamList>;
 const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let active = true;
-      (async () => {
-        setLoading(true);
-        try {
-          const data = await fetchNotifications();
-          if (active) setNotifications(data);
-        } catch (err) {
-          if (active) setNotifications([]);
-        } finally {
-          if (active) setLoading(false);
-        }
-      })();
-      return () => {
-        active = false;
-      };
-    }, [])
-  );
+  const notificationsQuery = useQuery({
+    queryKey: queryKeys.notifications(),
+    queryFn: () => fetchNotifications(0, 20),
+  });
+  useRefreshOnFocus(() => {
+    qc.invalidateQueries({ queryKey: queryKeys.notifications() });
+  });
+  const notifications = notificationsQuery.data ?? [];
+  const loading = notificationsQuery.isPending;
 
-  const handleNotificationPress = async (notif: Notification) => {
-    if (!notif.isRead) {
-      await markAsRead(notif.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => markAsRead(id),
+    onSuccess: (_data, id) => {
+      qc.setQueryData<Notification[]>(queryKeys.notifications(), (old) =>
+        old?.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
+      qc.setQueryData<number>(queryKeys.unreadCount(), (old) =>
+        typeof old === "number" ? Math.max(0, old - 1) : old
+      );
+    },
+  });
+
+  const handleNotificationPress = (notif: Notification) => {
+    if (!notif.isRead) {
+      markReadMutation.mutate(notif.id);
     }
 
     // Navigate based on notification type

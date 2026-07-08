@@ -1,6 +1,6 @@
 # Zencoo — Project Status
 
-**Last updated:** 2026-07-08 (backend efficiency pass + pagination, screens folder restructuring, Google Sign-In)
+**Last updated:** 2026-07-08 (backend efficiency pass + pagination, screens folder restructuring, Google Sign-In, TanStack Query adoption)
 **Scope of this doc:** a living status dashboard — what's done, what's live vs mock, what's next. For the full architectural overview see [PROJECT.md](PROJECT.md).
 
 Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not built / placeholder
@@ -153,13 +153,25 @@ Implemented from scratch in a dedicated `com.zencoo.google` backend package and 
 - Tests: new `GoogleAuthTests.java` (5 tests, mocking `GoogleTokenVerifier` since real Google tokens can't be minted in tests) — new-identity suggests a username without creating an account, invalid token → 401, completing registration creates a working account, taken username is rejected, an existing password account with a matching verified email gets auto-linked. (16 → 21).
 - ⚠️ **Not live-testable yet** — needs the user's own Google Cloud Console OAuth client IDs (Web/iOS/Android) and a running MySQL instance, both explicitly deferred to a later step by the user.
 
+### TanStack Query adoption (this session)
+An architecture review found the frontend had no server-state caching — every screen fetched independently via `useState`/`useEffect`/a shared `usePaginatedList` hook, and a `useRefreshOnFocus` hook forced a full network refetch on every screen focus. Two concrete problems: (1) pagination was discarded on refocus (scroll the feed to page 5, open a post, come back → collapses to page 1), and (2) no cross-screen sync (liking a post in Feed didn't update the same post in PostDetail; order status changes needed a manual patch into both `placed`/`received` lists and never reached `OrderDetail`). Adopted `@tanstack/react-query` as a data-fetching/caching layer — explicitly not a global app-state library (no Redux/MobX/Zustand was or is warranted) — across all 9 data-fetching screens:
+- **Infra**: `src/api/queryClient.ts` (20s default `staleTime`), `src/api/queryKeys.ts` (single source of truth for all cache keys), `QueryClientProvider` + RN `focusManager`/`AppState` wiring in `App.tsx`, `queryClient.clear()` added to `AuthContext.signOut` (including the automatic 401-triggered logout) so no cached data survives a session change.
+- **Cross-cache patch helpers**: `src/api/postsCache.ts` (`patchPostInCache`/`removePostFromCache`) and `src/api/ordersCache.ts` (`patchOrderInCache`) update a post/order everywhere it's cached (its own entry, every loaded page of the feed/orders infinite queries, and `myPosts`) in one call — this is the mechanism that fixes problem #2: a like or order-status-change is now instantly visible on every screen showing that data, not just the screen that triggered it.
+- **Shared hooks**: `useComments`/`useAddComment`/`useLikePost` (`src/hooks/`) used verbatim by both `Feed.tsx`'s comment modal and `PostDetail.tsx`; `useUpdateOrderStatus` used by both `Orders.tsx` and `OrderDetail.tsx`.
+- **Focus-refetch strategy**: `useInfiniteQuery`'s `refetch()` re-fetches all currently-loaded pages (not just page 0), which is the actual fix for problem #1. Feed, Orders, OrderDetail, and Notifications/unread-count kept an explicit focus-triggered refetch (via the now-more-robust `useRefreshOnFocus`, see below); screens with no focus hook before (Residents, PostDetail, OthersProfile, FollowList, MyProfile) rely on the passive 20s `staleTime` — a net improvement, not a regression, since they always refetched on every mount before.
+- **Bug fix in `useRefreshOnFocus.ts`**: React Navigation's `useFocusEffect` re-invokes its effect whenever the callback's identity changes while the screen stays focused — harmless for already-stable callbacks (e.g. the old `usePaginatedList`'s `reset`) but a footgun for React Query's `refetch`, which isn't guaranteed referentially stable across renders. Fixed by reading the callback through a ref instead of passing it as a dependency — makes the hook robust for all callers, not just the new Query-based ones.
+- **`usePaginatedList.ts` deleted** (fully superseded by `useInfiniteQuery`, zero remaining consumers). `useRefreshOnFocus.ts` kept (still the right shape for the screens above).
+- **Deliberate, low-risk behavior changes**: deleted posts now disappear from Feed immediately instead of only on the next refocus; order status changes now sync immediately between `Orders.tsx` and `OrderDetail.tsx` instead of eventually-consistent-on-next-refocus.
+- **Cleanup**: removed the unused `@react-native-async-storage/async-storage` dependency (declared in `package.json`, never imported anywhere in `src/`).
+- ⚠️ **Verified via `npx tsc --noEmit` only** (clean after every migration step) — no live backend/device available in this environment, so this has not been manually exercised in a running app.
+
 ---
 
 ## Verification
 
 - **Backend:** `./mvnw test` — **21 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed(paginated) → like → comment(paginated) → get-post-by-id → residents(paginated, wing filter) → order lifecycle & authorization → orders(paginated) → follow/unfollow & counts → followers/following lists → notifications (like, comment, follow, order status) → post pricing → order snapshot/total → order-detail authorization → input validation → auth rate limiting → **Google Sign-In (new identity, invalid token, complete registration, taken username, account linking)**). No MySQL required.
-- **Frontend:** `npx tsc --noEmit` — **clean**.
-- ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real. The user plans to set up a fresh local MySQL instance next, which will also unblock live Google Sign-In testing.
+- **Frontend:** `npx tsc --noEmit` — **clean**, including through the TanStack Query migration (verified after every one of its 10 incremental steps).
+- ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real. The user plans to set up a fresh local MySQL instance next, which will also unblock live Google Sign-In testing and give the first opportunity to manually exercise the new Query caching layer in a running app.
 
 ---
 

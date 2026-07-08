@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { View, Text, TextInput, FlatList } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ResidentsStackParamList } from "../../navigation/ResidentsStack";
 import styles from "../../styles/residentsStyles";
-import { fetchResidents, type Resident } from "../../api/residents";
+import { fetchResidents } from "../../api/residents";
+import { queryKeys } from "../../api/queryKeys";
 import ScreenHeader from "../../components/ScreenHeader";
 import ResidentListItem from "../../components/ResidentListItem";
 import LoadingView from "../../components/LoadingView";
-import { usePaginatedList } from "../../hooks/usePaginatedList";
 
 const NAV_HEIGHT = 64;
+const PAGE_SIZE = 20;
 
 type ResidentsRouteParams = {
   wing: { label: string; value: string };
@@ -32,16 +34,21 @@ const Residents = () => {
   const insets = useSafeAreaInsets();
 
   // Load residents for the selected wing from the backend.
-  const fetchResidentsPage = useCallback(
-    (page: number, size: number) => fetchResidents(wing.value, page, size),
-    [wing.value]
-  );
-  const { items: residents, loading, loadingMore, hasMore, reset, loadMore } =
-    usePaginatedList<Resident>(fetchResidentsPage, 20);
-
-  useEffect(() => {
-    reset();
-  }, [reset]);
+  const residentsQuery = useInfiniteQuery({
+    queryKey: queryKeys.residents(wing.value),
+    queryFn: ({ pageParam }) => fetchResidents(wing.value, pageParam, PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+  });
+  const residents = residentsQuery.data?.pages.flat() ?? [];
+  const loading = residentsQuery.isPending;
+  const loadingMore = residentsQuery.isFetchingNextPage;
+  const loadMore = () => {
+    if (residentsQuery.hasNextPage && !residentsQuery.isFetchingNextPage) {
+      residentsQuery.fetchNextPage();
+    }
+  };
 
   // 3. Type the filter callback
   const filteredResidents = residents.filter(

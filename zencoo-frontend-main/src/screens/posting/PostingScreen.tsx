@@ -19,8 +19,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import PlusIcon from "../../../assets/icons/NewPost.svg";
 import styles from "../../styles/postingScreenStyles";
+import { useQueryClient } from "@tanstack/react-query";
 import { uploadImageToCloudinary } from "../../utils/uploadImage";
 import { createPost } from "../../api/posts";
+import { queryKeys } from "../../api/queryKeys";
 
 const PostPreviewScreen: React.FC = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -32,6 +34,7 @@ const PostPreviewScreen: React.FC = () => {
   const [posting, setPosting] = useState(false);
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
 
   const pickImage = async (fromCamera: boolean) => {
     let result: ImagePicker.ImagePickerResult;
@@ -74,11 +77,12 @@ const PostPreviewScreen: React.FC = () => {
     try {
       const imageUrl = await uploadImageToCloudinary(imageUri);
       await createPost(imageUrl, caption.trim(), parsedPrice);
+      await qc.invalidateQueries({ queryKey: queryKeys.feed() });
       setImageUri(null);
       setCaption("");
       setPrice("");
       setInputHeight(60);
-      navigation.navigate("Feed" as never); // Feed refreshes on focus
+      navigation.navigate("Feed" as never); // Feed also refreshes on focus
     } catch (err: any) {
       Alert.alert(
         "Post failed",

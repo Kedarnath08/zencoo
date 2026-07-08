@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQuery } from "@tanstack/react-query";
 import residentsStyles from "../styles/residentsStyles";
 import ordersStyles from "../styles/ordersStyles";
 import { fetchFollowers, fetchFollowing } from "../api/follow";
-import type { Resident } from "../api/residents";
+import { queryKeys } from "../api/queryKeys";
 import ScreenHeader from "../components/ScreenHeader";
 import ResidentListItem from "../components/ResidentListItem";
 import LoadingView from "../components/LoadingView";
@@ -23,29 +24,19 @@ const FollowList: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"followers" | "following">(
     initialTab ?? "followers"
   );
-  const [list, setList] = useState<Resident[]>([]);
-  const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
   const headerHeight = insets.top + 56;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data =
-        activeTab === "followers"
-          ? await fetchFollowers(userId)
-          : await fetchFollowing(userId);
-      setList(data);
-    } catch {
-      setList([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, activeTab]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const listQuery = useQuery({
+    queryKey:
+      activeTab === "followers"
+        ? queryKeys.followers(userId)
+        : queryKeys.following(userId),
+    queryFn: () =>
+      activeTab === "followers" ? fetchFollowers(userId) : fetchFollowing(userId),
+  });
+  const list = listQuery.data ?? [];
+  const loading = listQuery.isPending;
 
   return (
     <View style={residentsStyles.container}>

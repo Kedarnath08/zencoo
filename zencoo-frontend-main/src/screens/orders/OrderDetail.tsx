@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -13,11 +13,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrdersStackParamList } from "../../navigation/OrdersStack";
-import { fetchOrder, updateOrderStatus, type Order } from "../../api/orders";
+import { fetchOrder, type Order } from "../../api/orders";
 import { formatDateTime } from "../../utils/time";
 import { formatPrice } from "../../utils/currency";
 import { useRefreshOnFocus } from "../../hooks/useRefreshOnFocus";
+import { useUpdateOrderStatus } from "../../hooks/useUpdateOrderStatus";
+import { queryKeys } from "../../api/queryKeys";
 import ScreenHeader from "../../components/ScreenHeader";
 import LoadingView from "../../components/LoadingView";
 import StatusBadge from "../../components/StatusBadge";
@@ -42,37 +45,34 @@ const OrderDetail: React.FC = () => {
   const route = useRoute();
   const { orderId, role } = route.params as Params;
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const orderQuery = useQuery({
+    queryKey: queryKeys.order(orderId),
+    queryFn: () => fetchOrder(orderId),
+  });
+  useRefreshOnFocus(() => {
+    qc.invalidateQueries({ queryKey: queryKeys.order(orderId) });
+  });
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setOrder(await fetchOrder(orderId));
-    } catch {
-      setOrder(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [orderId]);
+  const order = orderQuery.data ?? null;
+  const loading = orderQuery.isPending;
 
-  useRefreshOnFocus(load);
+  const updateStatus = useUpdateOrderStatus();
+  const busy = updateStatus.isPending;
 
-  const changeStatus = async (status: Order["status"]) => {
+  const changeStatus = (status: Order["status"]) => {
     if (busy) return;
-    setBusy(true);
-    try {
-      setOrder(await updateOrderStatus(orderId, status));
-    } catch (err: any) {
-      Alert.alert(
-        "Update failed",
-        err?.response?.data?.message ?? "Please try again."
-      );
-    } finally {
-      setBusy(false);
-    }
+    updateStatus.mutate(
+      { orderId, status },
+      {
+        onError: (err: any) =>
+          Alert.alert(
+            "Update failed",
+            err?.response?.data?.message ?? "Please try again."
+          ),
+      }
+    );
   };
 
   const confirmCancel = () => {

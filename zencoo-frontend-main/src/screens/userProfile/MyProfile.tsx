@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { styles } from "../../styles/myProfileStyles";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../../navigation/ProfileStack";
@@ -26,11 +27,9 @@ import {
   updateHometown,
   updateProfilePic,
 } from "../../api/user";
-import {
-  fetchUserPosts,
-  deletePost,
-  type FeedPost,
-} from "../../api/posts";
+import { fetchUserPosts, deletePost } from "../../api/posts";
+import { removePostFromCache } from "../../api/postsCache";
+import { queryKeys } from "../../api/queryKeys";
 import { useAuth } from "../../context/AuthContext";
 import ProfileStatsRow from "../../components/ProfileStatsRow";
 import PostsGrid from "../../components/PostsGrid";
@@ -58,35 +57,39 @@ type Profile = {
   posts: string[];
 };
 
-const useProfile = (navigation: any) => {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Wraps the raw `GET /api/profile` query and merges it into the UI's
+ * `Profile` shape, falling back to local defaults (`myProfile.json`) for
+ * fields the backend doesn't have (`headerBg`) or on fetch failure — same
+ * merge behavior as before the TanStack Query migration, just recomputed
+ * from cached query data instead of held in its own `useState`.
+ */
+const useProfile = () => {
+  const profileQuery = useQuery({
+    queryKey: queryKeys.myProfile(),
+    queryFn: fetchMyProfile,
+  });
 
-  useEffect(() => {
-    (async () => {
-      const localData = require("../../data/myProfile.json");
-      try {
-        const data = await fetchMyProfile();
-        setProfile({
-          ...localData,
-          id: String(data.id),
-          username: data.username,
-          displayName: data.fullName,
-          wing: data.doorNumber ? String(data.doorNumber)[0] : "",
-          door: data.doorNumber,
-          bio: data.bio ?? localData.bio,
-          hometown: data.hometown ?? localData.hometown,
-          profilePic: data.profilePic ?? localData.profilePic,
-          followersCount: data.followersCount ?? 0,
-        });
-        setError(null);
-      } catch {
-        setError("Failed to load your profile.");
-        setProfile(localData);
-      }
-    })();
-  }, [navigation]);
-  return { profile, setProfile, error, setError };
+  const profile = useMemo<Profile | null>(() => {
+    const localData = require("../../data/myProfile.json");
+    if (profileQuery.isPending) return null;
+    const data = profileQuery.data;
+    if (!data) return localData;
+    return {
+      ...localData,
+      id: String(data.id),
+      username: data.username,
+      displayName: data.fullName,
+      wing: data.doorNumber ? String(data.doorNumber)[0] : "",
+      door: data.doorNumber,
+      bio: data.bio ?? localData.bio,
+      hometown: data.hometown ?? localData.hometown,
+      profilePic: data.profilePic ?? localData.profilePic,
+      followersCount: data.followersCount ?? 0,
+    };
+  }, [profileQuery.data, profileQuery.isPending]);
+
+  return { profile, userId: profileQuery.data?.id };
 };
 
 const EditableField = ({
@@ -171,8 +174,9 @@ const MyProfileScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const { signOut } = useAuth();
-  const { profile, setProfile } = useProfile(navigation);
+  const { profile, userId } = useProfile();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
 
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
@@ -182,8 +186,8 @@ const MyProfileScreen: React.FC = () => {
   };
   const [editMode, setEditMode] = useState(false);
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
-  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [pickedHeaderBg, setPickedHeaderBg] = useState<string | null>(null);
   const [bioState, setBioState] = useState({
     editing: false,
     input: "",
@@ -208,46 +212,43 @@ const MyProfileScreen: React.FC = () => {
   }, [profile, hometownState.editing]);
 
   // Load the current user's real posts once we know their id.
-  useEffect(() => {
-    const id = profile?.id ? Number(profile.id) : NaN;
-    if (Number.isNaN(id)) return;
-    let active = true;
-    (async () => {
-      try {
-        const data = await fetchUserPosts(id);
-        if (active) setPosts(data);
-      } catch {
-        if (active) setPosts([]);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [profile?.id]);
+  const myPostsQuery = useQuery({
+    queryKey: queryKeys.myPosts(userId ?? -1),
+    queryFn: () => fetchUserPosts(userId as number),
+    enabled: userId != null,
+  });
+  const posts = myPostsQuery.data ?? [];
+
+  const saveMutation = useMutation({
+    mutationFn: ({ field, value }: { field: "bio" | "hometown"; value: string }) =>
+      field === "bio" ? updateBio(value) : updateHometown(value),
+    onSuccess: (data, { field }) => {
+      qc.setQueryData(queryKeys.myProfile(), (old) =>
+        old ? { ...old, [field]: (data as any)[field] } : old
+      );
+    },
+  });
 
   const saveField = useCallback(
-    async (field: "bio" | "hometown", value: string, setState: any) => {
-      if (!profile) return;
+    (field: "bio" | "hometown", value: string, setState: any) => {
       setState((s: any) => ({ ...s, saving: true }));
-      try {
-        const data =
-          field === "bio"
-            ? await updateBio(value)
-            : await updateHometown(value);
-        setProfile((prev: any) =>
-          prev ? { ...prev, [field]: data[field] } : prev
-        );
-        setState((s: any) => ({ ...s, editing: false }));
-      } catch {
-        Alert.alert(`Failed to save ${field}. Please try again.`);
-      } finally {
-        setState((s: any) => ({ ...s, saving: false }));
-      }
+      saveMutation.mutate(
+        { field, value },
+        {
+          onSuccess: () =>
+            setState((s: any) => ({ ...s, editing: false, saving: false })),
+          onError: () => {
+            Alert.alert(`Failed to save ${field}. Please try again.`);
+            setState((s: any) => ({ ...s, saving: false }));
+          },
+        }
+      );
     },
-    [profile, setProfile]
+    [saveMutation]
   );
 
-  // Pick image from gallery
+  // Pick image from gallery — headerBg has no backend representation yet
+  // (see PROJECT.md), so this stays purely local/session-only, same as before.
   const pickHeaderImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images, // fixed here
@@ -256,9 +257,7 @@ const MyProfileScreen: React.FC = () => {
       quality: 1,
     });
     if (!result.canceled && result.assets?.length)
-      setProfile((prev: any) =>
-        prev ? { ...prev, headerBg: result.assets[0].uri } : null
-      );
+      setPickedHeaderBg(result.assets[0].uri);
   };
 
   // Pick profile image from gallery
@@ -298,7 +297,7 @@ const MyProfileScreen: React.FC = () => {
             setDeleting(true);
             try {
               await Promise.all(ids.map((id) => deletePost(id)));
-              setPosts((prev) => prev.filter((p) => !ids.includes(p.id)));
+              ids.forEach((id) => removePostFromCache(qc, id));
               setSelectedPosts([]);
               setEditMode(false);
             } catch {
@@ -314,7 +313,9 @@ const MyProfileScreen: React.FC = () => {
 
   // 👇 Always call hooks before any early return!
   const { uploading, pickAndUpload } = useProfileImageUpload(async (url) => {
-    setProfile((prev) => (prev ? { ...prev, profilePic: url } : prev));
+    qc.setQueryData(queryKeys.myProfile(), (old) =>
+      old ? { ...old, profilePic: url } : old
+    );
     try {
       await updateProfilePic(url);
     } catch {
@@ -323,6 +324,8 @@ const MyProfileScreen: React.FC = () => {
   });
 
   if (!profile) return null; // or a loading spinner
+
+  const headerBg = pickedHeaderBg ?? profile.headerBg;
 
   return (
     <KeyboardAvoidingView
@@ -336,7 +339,7 @@ const MyProfileScreen: React.FC = () => {
       >
         {/* Header with background image, back button, and camera icon */}
         <ImageBackground
-          source={profile.headerBg ? { uri: profile.headerBg } : undefined}
+          source={headerBg ? { uri: headerBg } : undefined}
           style={[styles.header, { paddingTop: insets.top }]}
           imageStyle={styles.headerBgImage}
         >

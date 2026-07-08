@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -16,21 +16,18 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { styles as feedStyles } from "../styles/feedStyles";
-import {
-  fetchPost,
-  fetchComments,
-  addComment,
-  toggleLike,
-  deletePost,
-  type FeedPost,
-  type PostComment,
-} from "../api/posts";
+import { fetchPost, deletePost } from "../api/posts";
 import { timeAgo } from "../utils/time";
 import Avatar from "../components/Avatar";
 import ScreenHeader from "../components/ScreenHeader";
 import LoadingView from "../components/LoadingView";
-import { usePaginatedList } from "../hooks/usePaginatedList";
+import { useComments, flattenComments } from "../hooks/useComments";
+import { useAddComment } from "../hooks/useAddComment";
+import { useLikePost } from "../hooks/useLikePost";
+import { removePostFromCache } from "../api/postsCache";
+import { queryKeys } from "../api/queryKeys";
 
 type PostDetailParams = {
   postId: number;
@@ -43,94 +40,44 @@ const PostDetail: React.FC = () => {
   const route = useRoute();
   const { postId, isOwn } = route.params as PostDetailParams;
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
 
-  const [post, setPost] = useState<FeedPost | null>(null);
-  const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
-  const [posting, setPosting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  // Tracks whether the comments fetch failed during the current load(), so the
-  // whole screen falls back to "not available" — matching the prior behavior
-  // where a single Promise.all covered both the post and its comments.
-  const commentsErrorRef = useRef(false);
+  const postQuery = useQuery({
+    queryKey: queryKeys.post(postId),
+    queryFn: () => fetchPost(postId),
+  });
+  const commentsQuery = useComments(postId);
+  const comments = flattenComments(commentsQuery.data);
 
-  const fetchCommentsPage = useCallback(
-    async (page: number, size: number) => {
-      try {
-        return await fetchComments(postId, page, size);
-      } catch (err) {
-        commentsErrorRef.current = true;
-        throw err;
-      }
+  const loading = postQuery.isPending || commentsQuery.isPending;
+  // Matches the prior coupled-failure behavior: if either the post or its
+  // comments fail to load, the whole screen falls back to "not available".
+  const post = postQuery.isError || commentsQuery.isError ? null : postQuery.data ?? null;
+
+  const likeMutation = useLikePost();
+  const addCommentMutation = useAddComment(postId);
+  const deleteMutation = useMutation({
+    mutationFn: () => deletePost(postId),
+    onSuccess: () => {
+      removePostFromCache(qc, postId);
+      navigation.goBack();
     },
-    [postId]
-  );
+    onError: () => Alert.alert("Couldn't delete this post. Please try again."),
+  });
 
-  const {
-    items: comments,
-    setItems: setComments,
-    loadingMore: loadingMoreComments,
-    reset: resetComments,
-    loadMore: loadMoreComments,
-  } = usePaginatedList<PostComment>(fetchCommentsPage, 20);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    commentsErrorRef.current = false;
-    try {
-      const [postData] = await Promise.all([fetchPost(postId), resetComments()]);
-      setPost(commentsErrorRef.current ? null : postData);
-    } catch {
-      setPost(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [postId, resetComments]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const handleLike = async () => {
-    if (!post) return;
-    setPost({
-      ...post,
-      likedByMe: !post.likedByMe,
-      likeCount: post.likeCount + (post.likedByMe ? -1 : 1),
-    });
-    try {
-      const updated = await toggleLike(postId);
-      setPost(updated);
-    } catch {
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              likedByMe: !prev.likedByMe,
-              likeCount: prev.likeCount + (prev.likedByMe ? -1 : 1),
-            }
-          : prev
-      );
-    }
+  const handleLike = () => {
+    likeMutation.mutate(postId);
   };
 
-  const submitComment = async () => {
+  const submitComment = () => {
     const text = commentText.trim();
     if (!text) return;
-    setPosting(true);
-    try {
-      const created = await addComment(postId, text);
-      setComments((prev) => [...prev, created]);
-      setCommentText("");
-      setPost((prev) =>
-        prev ? { ...prev, commentCount: prev.commentCount + 1 } : prev
-      );
-    } catch {
-      Alert.alert("Couldn't post comment. Please try again.");
-    } finally {
-      setPosting(false);
-    }
+    addCommentMutation.mutate(text, {
+      onSuccess: () => setCommentText(""),
+      onError: () => Alert.alert("Couldn't post comment. Please try again."),
+    });
   };
 
   const handleDelete = () => {
@@ -139,17 +86,7 @@ const PostDetail: React.FC = () => {
       {
         text: "Delete",
         style: "destructive",
-        onPress: async () => {
-          setDeleting(true);
-          try {
-            await deletePost(postId);
-            navigation.goBack();
-          } catch {
-            Alert.alert("Couldn't delete this post. Please try again.");
-          } finally {
-            setDeleting(false);
-          }
-        },
+        onPress: () => deleteMutation.mutate(),
       },
     ]);
   };
@@ -190,8 +127,8 @@ const PostDetail: React.FC = () => {
         titleStyle={local.headerTitle}
         right={
           isOwn ? (
-            <TouchableOpacity onPress={handleDelete} disabled={deleting}>
-              {deleting ? (
+            <TouchableOpacity onPress={handleDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? (
                 <ActivityIndicator size="small" color="#F44336" />
               ) : (
                 <Ionicons name="trash-outline" size={22} color="#F44336" />
@@ -268,10 +205,16 @@ const PostDetail: React.FC = () => {
             No comments yet. Be the first!
           </Text>
         }
-        onEndReached={loadMoreComments}
+        onEndReached={() => {
+          if (commentsQuery.hasNextPage && !commentsQuery.isFetchingNextPage) {
+            commentsQuery.fetchNextPage();
+          }
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loadingMoreComments ? <LoadingView color="#FFA500" style={{ marginVertical: 16 }} /> : null
+          commentsQuery.isFetchingNextPage ? (
+            <LoadingView color="#FFA500" style={{ marginVertical: 16 }} />
+          ) : null
         }
       />
 
@@ -286,9 +229,9 @@ const PostDetail: React.FC = () => {
         <TouchableOpacity
           onPress={submitComment}
           style={feedStyles.sendButton}
-          disabled={posting}
+          disabled={addCommentMutation.isPending}
         >
-          {posting ? (
+          {addCommentMutation.isPending ? (
             <ActivityIndicator size="small" color="#FFA500" />
           ) : (
             <Icon name="send" size={22} color="#FFA500" />
