@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import styles from "../../styles/signupStyles";
 import AuthLogo from "../../components/auth/AuthLogo";
 import LoginFooterLink from "../../components/auth/LoginFooterLink";
+import GoogleSignInButton from "./google/GoogleSignInButton";
 
 export default function WelcomePage({ navigation }: any) {
   return (
@@ -18,6 +19,7 @@ export default function WelcomePage({ navigation }: any) {
       >
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
+      <GoogleSignInButton />
       <LoginFooterLink onPress={() => navigation.navigate("Login")} styles={styles} />
     </View>
   );

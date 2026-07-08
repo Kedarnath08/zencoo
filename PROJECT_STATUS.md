@@ -1,6 +1,6 @@
 # Zencoo — Project Status
 
-**Last updated:** 2026-07-07 (notifications system, richer ordering, codebase cleanup/audit pass)
+**Last updated:** 2026-07-08 (backend efficiency pass + pagination, screens folder restructuring, Google Sign-In)
 **Scope of this doc:** a living status dashboard — what's done, what's live vs mock, what's next. For the full architectural overview see [PROJECT.md](PROJECT.md).
 
 Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not built / placeholder
@@ -33,8 +33,8 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 | Followers / following lists | ✅ | ✅ `GET /api/users/{id}/followers\|following` | **Live** |
 | Post detail (single post, like, comments, delete-if-mine) | ✅ | ✅ `GET /api/posts/{id}` | **Live** |
 | Notifications (bell badge + list) | ✅ | ✅ `GET /api/notifications*` | **Live** |
-| Messaging | 🔴 placeholder button | 🔴 | **Not built** |
-| Google login | 🔴 removed | 🔴 removed | **Dropped** |
+| Messaging | 🔴 placeholder button | 🔴 | **Not built — deferred to last** |
+| Google Sign-In | ✅ button + onboarding screen | ✅ `POST /api/auth/google*` | **Built, needs Cloud Console credentials to actually run** |
 
 ---
 
@@ -132,19 +132,41 @@ A full pass over both codebases for dead code, N+1 queries, and consistency issu
 - **Flagged but intentionally not changed**: the repeated `if (userId == null) return 401` boilerplate in every controller (technically unreachable — Spring Security already blocks unauthenticated requests upstream — but harmless and touching all 7 controllers wasn't worth the blast radius); heavy `any` typing on navigation props in the auth-flow screens and `MyProfile.tsx` (a real gap, but a bigger separate refactor); the committed dev-default JWT secret / DB `root`/`root` password (already documented as "override in production").
 - Verified: 11/11 backend tests still pass, frontend typechecks clean — no behavior changes, only internal cleanup.
 
+### Backend efficiency pass + pagination (this session)
+A follow-up audit specifically on backend efficiency/standards, then an explicit ask to add pagination to the four unbounded list endpoints:
+- **N+1 fixes**: `ResidentService` previously loaded *all* users via `findAll()` and filtered by wing in Java — replaced with `UserRepository.findResidents(currentUserId, wing, Pageable)` filtering at the DB level (`SUBSTRING(u.doorNumber, 1, 1) = :wing`). `FollowRepository`'s followers/following queries lazy-loaded each `follower`/`following` individually — added `JOIN FETCH`.
+- **Pagination added to all four unbounded endpoints** (feed, residents directory, post comments, orders placed/received), backend + frontend:
+  - Backend: `PostRepository.findAllByOrderByCreatedAtDesc`, `PostCommentRepository.findByPostIdOrderByCreatedAtAsc`, `UserRepository.findResidents`, `OrderRepository.findByBuyerId.../findBySellerId...` all now return `Page<T>` from a `Pageable`, each with an explicit `countQuery` alongside its `JOIN FETCH` (required — without it Spring Data falls back to counting via the fetch-joined query, which double-counts). `PostService`/`ResidentService`/`OrderService` build `PageRequest.of(page, size)`; `PostController`/`ResidentController`/`OrderController` gained `page`/`size` query params (defaults `0`/`20`), reusing the response-shape convention already established by `Notifications`.
+  - Frontend: new generic `usePaginatedList<T>` hook (`items`, `loading`, `refreshing`, `loadingMore`, `hasMore`, `reset()`, `loadMore()`) wired into `Feed.tsx`, `Residents.tsx`, `Orders.tsx` (used twice — placed + received, sharing one error alert), and `PostDetail.tsx`'s comment list — all four now infinite-scroll instead of loading an unbounded list up front.
+- Tests: `residentsDirectoryWingFilterMatchesOnlyThatWing`, `residentsDirectoryIsPaginated`, `feedIsPaginated`, `commentsArePaginated`, `ordersArePaginated` added (11 → 16).
+
+### Screens folder restructuring (this session)
+The user flagged that `screens/` was inconsistent — some multi-concern screens lived in their own subfolder (`posting/`, `residents/`), others sat loose at the top level (`Feed.tsx`, `FollowList.tsx`, `Notifications.tsx`, `Orders.tsx`, `OrderDetail.tsx`...) with no clear rule. Fixed via a scoped reorg (not a full restructure — single-file screens stay flat):
+- `Orders.tsx` + `OrderDetail.tsx` → grouped into new `screens/orders/` (they're one feature, always navigated together).
+- `screens/residents/wings/Wing.tsx` → flattened to `screens/residents/Wing.tsx` (the `wings/` subfolder held only one file).
+- All moves done via `git mv` to preserve rename history; import paths in the moved files and in `OrdersStack.tsx`/`ResidentsStack.tsx` updated to match.
+
+### Google Sign-In (this session)
+Implemented from scratch in a dedicated `com.zencoo.google` backend package and `screens/userAuth/google/` frontend folder, kept fully separate from the existing password-based `AuthController`/`AuthService` (a prior, non-functional attempt at this had been found commented-out and deleted during the earlier cleanup pass).
+- Backend: `User.googleId` (nullable, unique) + `UserRepository.findByGoogleId`; `GoogleTokenVerifier` wraps `GoogleIdTokenVerifier` (from the new `com.google.api-client` dependency) to validate a Google ID token's signature/issuer/audience/expiry against `google.oauth.client-ids` (comma-separated, env-driven — empty by default, so the endpoint fails closed until the user configures real client IDs); `GoogleAuthService` — `POST /api/auth/google` looks up by `googleId`, falling back to matching-verified-email accounts (auto-linking a Google identity to an existing password account, since Google already verified the email), returning a JWT if matched or `{isNewUser:true, email, fullName, suggestedUsername}` if not; `POST /api/auth/google/complete` re-verifies the token server-side (never trusts client-supplied identity fields) and creates the account (`passwordHash: null`) once username + door number are supplied. Both endpoints already covered by the existing `"/api/auth/**".permitAll()` rule — no `SecurityConfig` change needed.
+- Frontend: `expo-auth-session` + `expo-web-browser` (PKCE-based Google OAuth); `GoogleSignInButton` (dropped into both `WelcomePage.tsx` and `Login.tsx`) handles the OAuth prompt and calls the backend; new-user responses navigate to `CompleteGoogleProfile.tsx` (reuses the existing username-uniqueness-check UX from `SignUpstepThree.tsx` + the fixed community value from `SignUpStepOne.tsx`) to collect the door number before the account is created. `AuthContext` needed zero changes — it already just accepts a JWT string regardless of source.
+- Tests: new `GoogleAuthTests.java` (5 tests, mocking `GoogleTokenVerifier` since real Google tokens can't be minted in tests) — new-identity suggests a username without creating an account, invalid token → 401, completing registration creates a working account, taken username is rejected, an existing password account with a matching verified email gets auto-linked. (16 → 21).
+- ⚠️ **Not live-testable yet** — needs the user's own Google Cloud Console OAuth client IDs (Web/iOS/Android) and a running MySQL instance, both explicitly deferred to a later step by the user.
+
 ---
 
 ## Verification
 
-- **Backend:** `./mvnw test` — **11 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed → like → comment → get-post-by-id → residents (with post summaries) → order lifecycle & authorization → follow/unfollow & counts → followers/following lists → notifications (like, comment, follow, order status) → **post pricing → order snapshot/total → order-detail authorization** → input validation → auth rate limiting). No MySQL required.
+- **Backend:** `./mvnw test` — **21 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed(paginated) → like → comment(paginated) → get-post-by-id → residents(paginated, wing filter) → order lifecycle & authorization → orders(paginated) → follow/unfollow & counts → followers/following lists → notifications (like, comment, follow, order status) → post pricing → order snapshot/total → order-detail authorization → input validation → auth rate limiting → **Google Sign-In (new identity, invalid token, complete registration, taken username, account linking)**). No MySQL required.
 - **Frontend:** `npx tsc --noEmit` — **clean**.
-- ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real.
+- ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real. The user plans to set up a fresh local MySQL instance next, which will also unblock live Google Sign-In testing.
 
 ---
 
 ## Remaining roadmap
 
-1. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
+1. **Google Sign-In — needs manual setup before it can be tested live**: a Google Cloud Console OAuth consent screen + 3 client IDs (Web/iOS/Android — Android needs the app's package name and a SHA-1 keystore fingerprint), fed into `GOOGLE_OAUTH_CLIENT_ID_WEB/IOS/ANDROID` (frontend) and `GOOGLE_OAUTH_CLIENT_IDS` (backend). Also needs the fresh local MySQL instance the user is setting up.
+2. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
 
 ---
 

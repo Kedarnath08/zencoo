@@ -7,6 +7,7 @@ import { loginUser } from "../../api/user";
 import { useAuth } from "../../context/AuthContext";
 import AuthLogo from "../../components/auth/AuthLogo";
 import FormField from "../../components/auth/FormField";
+import GoogleSignInButton from "./google/GoogleSignInButton";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Required"),
@@ -93,6 +94,8 @@ export default function Login({ navigation }: any) {
           </>
         )}
       </Formik>
+
+      <GoogleSignInButton />
 
       {/* Bottom Text */}
       <View style={styles.bottomTextContainer}>

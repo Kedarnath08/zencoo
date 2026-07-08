@@ -19,14 +19,15 @@ The project is split into two independent repos/folders:
 
 ---
 
-## Current state (updated 2026-07-07)
+## Current state (updated 2026-07-08)
 
-A production-hardening pass (phases 1–6) and feature-completion pass (residents, orders, follow, post-detail, notifications) were done on top of the original prototype. Status now:
+A production-hardening pass (phases 1–6) and feature-completion pass (residents, orders, follow, post-detail, notifications) were done on top of the original prototype, followed by a backend efficiency/pagination pass, a screens folder reorganization, and a from-scratch Google Sign-In implementation. Status now:
 
-- ✅ **Real, wired to backend:** Sign-up (auto-login), login (BCrypt + JWT), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
+- ✅ **Real, wired to backend:** Sign-up (auto-login), login (BCrypt + JWT), **Google Sign-In** (sign in or onboard with a Google account, own `com.zencoo.google` backend package + `screens/userAuth/google/` frontend folder), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
 - ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`) with an **order-detail screen** (status timeline, price, role-aware actions); **post pricing** (optional price on a post, snapshotted into the order at purchase time so later edits don't rewrite history); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid; and a **real-time notifications system** (bell icon with unread badge, tap → notifications screen, auto-created for likes/comments/follows/order-status-changes).
+- ✅ **Pagination**: feed, residents directory, post comments, and orders (placed/received) are all infinite-scroll (`page`/`size` query params backend-side, a shared `usePaginatedList` hook frontend-side) instead of loading unbounded lists.
 - 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Only messaging remains — see below.
-- 🔴 **Intentionally dropped:** Google login (commented out on both ends; `firebase`/`expo-auth-session`/`expo-random`/`expo-crypto` were removed as unused deps in the cleanup pass).
+- ⚠️ **Google Sign-In is code-complete but not yet live-tested** — needs the user's own Google Cloud Console OAuth client IDs and a running local MySQL instance (both explicitly deferred to a later step).
 
 ### What the hardening pass changed
 1. **Passwords** are now BCrypt-hashed (`BCryptPasswordEncoder`); credential logging removed.
@@ -57,9 +58,14 @@ com.zencoo
 ├── controller/
 │   ├── AuthController.java        # /api/auth/*  (login, register, check-email, check-username)
 │   └── UserProfileController.java # /api/*       (get profile, patch bio/hometown/profile-pic)
+├── google/                        # Google Sign-In, kept separate from AuthController/AuthService
+│   ├── GoogleAuthController.java  # /api/auth/google/*  (login, complete)
+│   ├── GoogleAuthService.java     # verify → look up/link/create → issue JWT
+│   ├── GoogleTokenVerifier.java   # wraps GoogleIdTokenVerifier; audience from google.oauth.client-ids
+│   └── dto/                       # GoogleLoginRequest, GoogleCompleteRegistrationRequest
 ├── dto/UserProfileDto.java        # Shape returned to the client for a profile
 ├── model/User.java                # JPA @Entity -> "users" table
-├── repository/UserRepository.java # Spring Data JPA (findByEmail/Username, existsBy...)
+├── repository/UserRepository.java # Spring Data JPA (findByEmail/Username, findByGoogleId, existsBy...)
 ├── security/
 │   ├── CustomUserDetails.java     # Wraps userId as the Spring Security principal
 │   └── JwtAuthenticationFilter.java # Reads "Authorization: Bearer <jwt>", sets auth context
@@ -75,6 +81,10 @@ com.zencoo
 - `GET /check-email?email=` → `{exists: boolean}`.
 - `GET /check-username?username=` → `{unique: boolean}`.
 
+**Google Sign-In** (`/api/auth/google`, public — covered by the same `/api/auth/**` rule):
+- `POST /` — body `{idToken}`. Verifies the Google ID token server-side; if the identity is already linked (or its verified email matches an existing password account, which gets auto-linked) → `{token, isNewUser: false}`; otherwise → `{isNewUser: true, email, fullName, suggestedUsername}` (no account created yet).
+- `POST /complete` — body `{idToken, username, doorNumber, community}`. Re-verifies the token server-side, creates the account (`passwordHash: null`, `googleId` set) → `{token}`.
+
 **Profile** (`/api`, requires JWT; user identified from token's subject = userId):
 - `GET /profile` → `UserProfileDto`.
 - `PATCH /profile/bio` — body `{bio}`.
@@ -82,32 +92,32 @@ com.zencoo
 - `PATCH /profile/profile-pic` — body `{profilePic}` (a Cloudinary URL).
 
 **Posts / feed** (`/api/posts`, requires JWT):
-- `GET /posts` → feed (all posts, newest first); each `PostDto` has author info, `likeCount`, `commentCount`, `likedByMe`.
+- `GET /posts?page=&size=` → feed (all posts, newest first, paginated — defaults `page=0`, `size=20`); each `PostDto` has author info, `likeCount`, `commentCount`, `likedByMe`.
 - `GET /posts/{postId}` → a single post (same `PostDto` shape) — backs the post-detail screen; 404 if missing.
 - `GET /posts/user/{authorId}` → posts by one user (profile grids).
 - `POST /posts` — body `{imageUrl, caption, price?}` → creates a post (201). `price` is optional — when set, the post is listed for sale and can be ordered.
 - `DELETE /posts/{postId}` → delete own post (403 if not owner).
 - `POST /posts/{postId}/like` → toggles like, returns the updated `PostDto`.
-- `GET /posts/{postId}/comments` → list of `CommentDto`.
+- `GET /posts/{postId}/comments?page=&size=` → paginated list of `CommentDto` (oldest first, defaults `page=0`, `size=20`).
 - `POST /posts/{postId}/comments` — body `{text}` → adds a comment (201).
 
 ### Entities
-- `User`: `id, email (unique), username (unique), passwordHash (BCrypt), fullName, doorNumber, community, bio, hometown, createdAt, profilePic`.
+- `User`: `id, email (unique), username (unique), passwordHash (BCrypt, nullable for Google-only accounts), googleId (unique, nullable), fullName, doorNumber, community, bio, hometown, createdAt, profilePic`.
 - `Post`: `id, user (FK), imageUrl, caption, price (optional, BigDecimal), createdAt`.
 - `PostLike`: `id, post (FK), user (FK)` — unique on `(post, user)`.
 - `PostComment`: `id, post (FK), user (FK), text, createdAt`.
 - `Notification`: `id, user (FK), type (LIKE/COMMENT/ORDER_STATUS/FOLLOW), relatedId, title, message, isRead, createdAt`.
 
 ### Config (env vars, with dev defaults in `application.properties`)
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (≥ 64 bytes), `JWT_EXPIRATION_MS`, `CORS_ALLOWED_ORIGINS`.
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (≥ 64 bytes), `JWT_EXPIRATION_MS`, `CORS_ALLOWED_ORIGINS`, `GOOGLE_OAUTH_CLIENT_IDS` (comma-separated Web/iOS/Android client IDs; empty by default, so `/api/auth/google*` rejects every token until set). Depends on `com.google.api-client:google-api-client` for Google ID token verification.
 
 **Residents** (`/api/residents`, requires JWT) — a resident is a `User`:
-- `GET /residents?wing=` → directory (excludes self; optional wing filter; wing derived from door number).
+- `GET /residents?wing=&page=&size=` → paginated directory (excludes self; optional wing filter, applied at the DB level; wing derived from door number; defaults `page=0`, `size=20`).
 - `GET /residents/{id}` → full `ResidentProfileDto` (bio, hometown, follower/following counts, and `posts: PostSummaryDto[]` — `{id, imageUrl}` pairs so the profile grid can open a specific post's detail view, not just display its image).
 
 **Orders** (`/api/orders`, requires JWT) — resident-to-resident orders:
-- `GET /orders/placed` → orders I placed (buyer = me).
-- `GET /orders/received` → orders placed with me (seller = me).
+- `GET /orders/placed?page=&size=` → paginated orders I placed (buyer = me, defaults `page=0`, `size=20`).
+- `GET /orders/received?page=&size=` → paginated orders placed with me (seller = me, defaults `page=0`, `size=20`).
 - `GET /orders/{orderId}` → single order detail (`OrderDto`, adds `unitPrice`/`totalPrice`); 403 if you're neither buyer nor seller, 404 if missing. Backs the order-detail screen.
 - `POST /orders` — body `{sellerId, productName, productImage?, quantity?, price?, note?}` → creates a PENDING order (can't order from yourself). `price` is snapshotted onto the order as `unitPrice` (defaults to 0) so later edits to the post's price don't retroactively change past orders.
 - `PATCH /orders/{id}/status` — body `{status}` → role-aware transitions: seller does PENDING→ACCEPTED/REJECTED and ACCEPTED→COMPLETED/CANCELLED; buyer does PENDING→CANCELLED. Wrong party → 403; illegal transition → 400.
@@ -141,7 +151,7 @@ com.zencoo
 Expo (managed-ish, `newArchEnabled: true`) React Native app in TypeScript. Entry `index.ts` → `App.tsx` → `AuthNavigator`. Android package `com.kedarnath08.zfrontend`. Uses EAS (project id in `app.json`).
 
 ### Key libraries
-`@react-navigation` (bottom-tabs + native-stack), `axios`, `formik` + `yup` (forms/validation), `expo-image-picker` + `expo-image-manipulator` (posting & avatar), `expo-secure-store` (JWT storage), `react-native-svg` (icons), `firebase` (installed but not obviously used), `expo-auth-session` (for the abandoned Google login).
+`@react-navigation` (bottom-tabs + native-stack), `axios`, `formik` + `yup` (forms/validation), `expo-image-picker` + `expo-image-manipulator` (posting & avatar), `expo-secure-store` (JWT storage), `react-native-svg` (icons), `expo-auth-session` + `expo-web-browser` (Google Sign-In, PKCE-based).
 
 ### Auth architecture (post-hardening)
 - `src/context/AuthContext.tsx` — holds the JWT, persists it in SecureStore, reads it on boot (auto-login), and auto-logs-out on any 401 from the API. Exposes `signIn(token)` / `signOut()` / `isAuthenticated` / `ready`.
@@ -156,6 +166,7 @@ App.tsx  (wraps everything in <AuthProvider>)
 └── AuthNavigator (reads AuthContext; shows a splash until the token check finishes)
     ├── if NOT authed → Stack:
     │     WelcomePage → SignUpStepOne → SignUpStepTwo → SignUpStepThree → signIn(token)
+    │     WelcomePage / Login → GoogleSignInButton → signIn(token) or → CompleteGoogleProfile → signIn(token)
     │     Login → signIn(token)
     └── if authed → AppNavigator (bottom tab bar, custom <BottomNavBar/>):
           ├── Feed            → FeedStack: FeedMain (Feed.tsx) → Notifications
@@ -173,7 +184,9 @@ App.tsx  (wraps everything in <AuthProvider>)
 - `SignUpStepOne` — full name, email, door number, community (community is hardcoded to "Sobha HRC Prestine, Jakkuru"). Live-checks email isn't already registered via backend.
 - `SignUpStepTwo` — set + confirm password (min 6 chars).
 - `SignUpstepThree` — auto-generates a suggested `@username`, debounced live uniqueness check, then `registerUser` → `signIn(token)` (auto-login).
-- `Login` — Formik + Yup → `loginUser` → `signIn(token)`. Google button removed.
+- `Login` — Formik + Yup → `loginUser` → `signIn(token)`, plus a `GoogleSignInButton`.
+- `google/GoogleSignInButton.tsx` (dropped into both `WelcomePage` and `Login`) — runs the `expo-auth-session` Google OAuth prompt, calls `POST /api/auth/google`; existing identities go straight to `signIn(token)`, new ones navigate to `CompleteGoogleProfile`.
+- `google/CompleteGoogleProfile.tsx` — collects/edits the suggested username (same live-uniqueness-check UX as `SignUpstepThree`) + door number (community is the same hardcoded value as `SignUpStepOne`), then `POST /api/auth/google/complete` → `signIn(token)`.
 
 **Main app**
 - `Feed.tsx` — `GET /api/posts`, pull-to-refresh, refreshes on focus (so a new post appears), optimistic like toggle (`POST /posts/{id}/like`), a comments modal (`GET/POST /posts/{id}/comments`), a bell icon with unread-count badge (`GET /notifications/unread-count`, refreshes on focus) → `Notifications`, and a cart button that places an order for that post's item from its author, including its price if listed (`POST /api/orders`).
@@ -196,6 +209,7 @@ App.tsx  (wraps everything in <AuthProvider>)
 ### API layer (`src/api/`)
 - `axiosInstance.ts` — the one axios instance every call goes through: Bearer-token interceptor + 401 handler routed to `AuthContext`.
 - `user.ts` — auth (`checkEmailRegistered`, `checkUsernameUnique`, `registerUser`, `loginUser`) + own profile (`fetchMyProfile`, `updateBio`, `updateHometown`, `updateProfilePic`).
+- `googleAuth.ts` — `loginWithGoogle(idToken)`, `completeGoogleSignup(idToken, username, doorNumber, community)`.
 - `posts.ts` — `fetchFeed`, `fetchPost`, `fetchUserPosts`, `createPost`, `deletePost`, `toggleLike`, `fetchComments`, `addComment`.
 - `residents.ts` — `fetchResidents`, `fetchResident` (returns `ResidentProfile` with `posts: PostSummary[]`).
 - `orders.ts` — `fetchPlacedOrders`, `fetchReceivedOrders`, `fetchOrder`, `createOrder`, `updateOrderStatus`.
@@ -228,12 +242,13 @@ All screen styles live in `src/styles/*.ts` as `StyleSheet` objects (one file pe
 
 ## Suggested next steps (if you resume this)
 
-Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen). Remaining:
+Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen), ✅ backend efficiency pass + pagination (feed/residents/comments/orders), ✅ screens folder restructuring, ✅ Google Sign-In (code-complete, not yet live-tested). Remaining:
 
-1. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
+1. **Google Sign-In needs manual setup to go live**: Google Cloud Console OAuth client IDs (Web/iOS/Android) + a local MySQL instance — both on the user to set up next.
+2. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
 
 See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the current feature-by-feature status dashboard.
 
 ---
 
-*Originally recovered 2026-07-05; updated 2026-07-06 after a production-hardening pass, follow/friends system, dead-code cleanup, and post-detail/followers-list screens. Owner: kedarnath08 (Expo). If details here drift from the code, trust the code.*
+*Originally recovered 2026-07-05; updated 2026-07-08 after a production-hardening pass, follow/friends system, dead-code cleanup, post-detail/followers-list screens, backend efficiency + pagination pass, screens folder restructuring, and Google Sign-In. Owner: kedarnath08 (Expo). If details here drift from the code, trust the code.*

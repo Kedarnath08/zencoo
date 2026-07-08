@@ -7,6 +7,7 @@ import SignUpStepOne from "../screens/userAuth/SignUpStepOne";
 import SignUpStepTwo from "../screens/userAuth/SignUpStepTwo";
 import SignUpStepThree from "../screens/userAuth/SignUpstepThree";
 import Login from "../screens/userAuth/Login";
+import CompleteGoogleProfile from "../screens/userAuth/google/CompleteGoogleProfile";
 import AppNavigator from "./AppNavigator";
 import { useAuth } from "../context/AuthContext";
 
@@ -36,6 +37,7 @@ export default function AuthNavigator() {
           <Stack.Screen name="SignUpStepTwo" component={SignUpStepTwo} />
           <Stack.Screen name="SignUpStepThree" component={SignUpStepThree} />
           <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="CompleteGoogleProfile" component={CompleteGoogleProfile} />
         </Stack.Navigator>
       )}
     </NavigationContainer>

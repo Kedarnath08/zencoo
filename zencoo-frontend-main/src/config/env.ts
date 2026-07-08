@@ -33,3 +33,14 @@ export const CLOUDINARY_CLOUD_NAME =
 export const CLOUDINARY_UPLOAD_PRESET =
   process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "unsigned_uploads";
 export const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+/**
+ * Google Sign-In OAuth client IDs, from Google Cloud Console (APIs & Services
+ * → Credentials). All three are needed — expo-auth-session picks the right
+ * one per platform, but the Web client ID is also required as the "issuer"
+ * client for the auth code exchange even on native.
+ * Empty by default; Google sign-in is inert until these are set.
+ */
+export const GOOGLE_OAUTH_CLIENT_ID_WEB = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID_WEB || "";
+export const GOOGLE_OAUTH_CLIENT_ID_IOS = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID_IOS || "";
+export const GOOGLE_OAUTH_CLIENT_ID_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID_ANDROID || "";

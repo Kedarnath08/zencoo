@@ -20,6 +20,10 @@ public class User {
     @Column(name = "password_hash")
     private String passwordHash;
 
+    /** Google's stable "sub" claim, set for accounts that have signed in with Google. Null for password-only accounts. */
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
     @Column(name = "full_name")
     private String fullName;
 
@@ -71,6 +75,9 @@ public class User {
 
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getGoogleId() { return googleId; }
+    public void setGoogleId(String googleId) { this.googleId = googleId; }
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }

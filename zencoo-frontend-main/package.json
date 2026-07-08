@@ -35,7 +35,9 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-web": "^0.20.0",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "expo-auth-session": "~6.2.1",
+    "expo-web-browser": "~14.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
