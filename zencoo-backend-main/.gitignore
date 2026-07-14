@@ -1,5 +1,9 @@
 HELP.md
 target/
+
+# Local-only config override (real DB password) — picked up automatically by
+# Spring Boot from the working directory, never committed.
+/application.properties
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
