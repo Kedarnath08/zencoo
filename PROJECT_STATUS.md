@@ -1,6 +1,6 @@
 # Zencoo — Project Status
 
-**Last updated:** 2026-07-08 (backend efficiency pass + pagination, screens folder restructuring, Google Sign-In, TanStack Query adoption)
+**Last updated:** 2026-07-14 (live local environment stood up — MySQL + backend + Android emulator all verified working end-to-end; TanStack Query migration confirmed live, not just typechecked)
 **Scope of this doc:** a living status dashboard — what's done, what's live vs mock, what's next. For the full architectural overview see [PROJECT.md](PROJECT.md).
 
 Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not built / placeholder
@@ -34,7 +34,7 @@ Legend: ✅ done & backend-wired · 🟡 UI done, still on mock data · 🔴 not
 | Post detail (single post, like, comments, delete-if-mine) | ✅ | ✅ `GET /api/posts/{id}` | **Live** |
 | Notifications (bell badge + list) | ✅ | ✅ `GET /api/notifications*` | **Live** |
 | Messaging | 🔴 placeholder button | 🔴 | **Not built — deferred to last** |
-| Google Sign-In | ✅ button + onboarding screen | ✅ `POST /api/auth/google*` | **Built, needs Cloud Console credentials to actually run** |
+| Google Sign-In | ✅ button + onboarding screen | ✅ `POST /api/auth/google*` | **Built, runs against live DB now — still needs Google Cloud Console OAuth credentials to actually complete a sign-in** |
 
 ---
 
@@ -151,9 +151,9 @@ Implemented from scratch in a dedicated `com.zencoo.google` backend package and 
 - Backend: `User.googleId` (nullable, unique) + `UserRepository.findByGoogleId`; `GoogleTokenVerifier` wraps `GoogleIdTokenVerifier` (from the new `com.google.api-client` dependency) to validate a Google ID token's signature/issuer/audience/expiry against `google.oauth.client-ids` (comma-separated, env-driven — empty by default, so the endpoint fails closed until the user configures real client IDs); `GoogleAuthService` — `POST /api/auth/google` looks up by `googleId`, falling back to matching-verified-email accounts (auto-linking a Google identity to an existing password account, since Google already verified the email), returning a JWT if matched or `{isNewUser:true, email, fullName, suggestedUsername}` if not; `POST /api/auth/google/complete` re-verifies the token server-side (never trusts client-supplied identity fields) and creates the account (`passwordHash: null`) once username + door number are supplied. Both endpoints already covered by the existing `"/api/auth/**".permitAll()` rule — no `SecurityConfig` change needed.
 - Frontend: `expo-auth-session` + `expo-web-browser` (PKCE-based Google OAuth); `GoogleSignInButton` (dropped into both `WelcomePage.tsx` and `Login.tsx`) handles the OAuth prompt and calls the backend; new-user responses navigate to `CompleteGoogleProfile.tsx` (reuses the existing username-uniqueness-check UX from `SignUpstepThree.tsx` + the fixed community value from `SignUpStepOne.tsx`) to collect the door number before the account is created. `AuthContext` needed zero changes — it already just accepts a JWT string regardless of source.
 - Tests: new `GoogleAuthTests.java` (5 tests, mocking `GoogleTokenVerifier` since real Google tokens can't be minted in tests) — new-identity suggests a username without creating an account, invalid token → 401, completing registration creates a working account, taken username is rejected, an existing password account with a matching verified email gets auto-linked. (16 → 21).
-- ⚠️ **Not live-testable yet** — needs the user's own Google Cloud Console OAuth client IDs (Web/iOS/Android) and a running MySQL instance, both explicitly deferred to a later step by the user.
+- The password-based half of this (registration/login flow, JWT issuance, DB schema incl. `google_id`) is now verified against a real local MySQL instance — see "Live local environment" below. ⚠️ **The Google OAuth flow itself still isn't testable** — needs the user's own Google Cloud Console OAuth client IDs (Web/iOS/Android), not yet configured.
 
-### TanStack Query adoption (this session)
+### TanStack Query adoption
 An architecture review found the frontend had no server-state caching — every screen fetched independently via `useState`/`useEffect`/a shared `usePaginatedList` hook, and a `useRefreshOnFocus` hook forced a full network refetch on every screen focus. Two concrete problems: (1) pagination was discarded on refocus (scroll the feed to page 5, open a post, come back → collapses to page 1), and (2) no cross-screen sync (liking a post in Feed didn't update the same post in PostDetail; order status changes needed a manual patch into both `placed`/`received` lists and never reached `OrderDetail`). Adopted `@tanstack/react-query` as a data-fetching/caching layer — explicitly not a global app-state library (no Redux/MobX/Zustand was or is warranted) — across all 9 data-fetching screens:
 - **Infra**: `src/api/queryClient.ts` (20s default `staleTime`), `src/api/queryKeys.ts` (single source of truth for all cache keys), `QueryClientProvider` + RN `focusManager`/`AppState` wiring in `App.tsx`, `queryClient.clear()` added to `AuthContext.signOut` (including the automatic 401-triggered logout) so no cached data survives a session change.
 - **Cross-cache patch helpers**: `src/api/postsCache.ts` (`patchPostInCache`/`removePostFromCache`) and `src/api/ordersCache.ts` (`patchOrderInCache`) update a post/order everywhere it's cached (its own entry, every loaded page of the feed/orders infinite queries, and `myPosts`) in one call — this is the mechanism that fixes problem #2: a like or order-status-change is now instantly visible on every screen showing that data, not just the screen that triggered it.
@@ -163,7 +163,17 @@ An architecture review found the frontend had no server-state caching — every 
 - **`usePaginatedList.ts` deleted** (fully superseded by `useInfiniteQuery`, zero remaining consumers). `useRefreshOnFocus.ts` kept (still the right shape for the screens above).
 - **Deliberate, low-risk behavior changes**: deleted posts now disappear from Feed immediately instead of only on the next refocus; order status changes now sync immediately between `Orders.tsx` and `OrderDetail.tsx` instead of eventually-consistent-on-next-refocus.
 - **Cleanup**: removed the unused `@react-native-async-storage/async-storage` dependency (declared in `package.json`, never imported anywhere in `src/`).
-- ⚠️ **Verified via `npx tsc --noEmit` only** (clean after every migration step) — no live backend/device available in this environment, so this has not been manually exercised in a running app.
+- Originally verified via `npx tsc --noEmit` only; **now confirmed live** in a running app against a real backend — see "Live local environment" below. Manually exercised: signup/login, feed scroll + navigate-away-and-back (pagination survives refocus instead of collapsing to page 1), and the app renders cleanly end-to-end with no runtime errors.
+
+### Live local environment (this session)
+Stood up a real local dev environment (MySQL + backend + Android emulator) for the first time this project cycle, surfacing and fixing several environment-level issues unrelated to application code:
+- **MySQL**: fresh `zencoo_userdb` created locally. Backend's real local password lives in a new gitignored `zencoo-backend-main/application.properties` (project root, sibling to `pom.xml`) — Spring Boot auto-merges this over the committed classpath config, so no env var needs to be set on every run and the real password never touches git.
+- **Android native build fixes**:
+  - Missing `ANDROID_HOME` — set as a permanent user env var, plus `android/local.properties` (`sdk.dir`) as a redundant local safety net.
+  - Gradle daemon crashed with a native OOM (`insufficient memory... malloc failed`) under low system RAM (Android Studio + emulator + IDE all open at once, down to ~2GB free of 31GB total) — mitigated via `org.gradle.workers.max=2` + `kotlin.daemon.jvm.options=-Xmx1024m` in `android/gradle.properties`.
+  - **`Cannot find native module 'ExpoApplication'` / `'ExpoCrypto'` crashes at startup** — root cause: `expo-auth-session` (added during the Google Sign-In work) declares `expo-application` and `expo-crypto` as its own dependencies, but npm installed both *nested* inside `expo-auth-session/node_modules/` instead of hoisting them to the top-level `node_modules/`. Metro's JS bundler resolves nested packages fine (matches Node's standard module resolution), but Expo's native Android autolinking only scans the top-level `node_modules`, so neither module's native side ever got compiled into the app. Fixed by installing both explicitly as direct top-level dependencies (`npx expo install expo-application expo-crypto`) — now real entries in `package.json`.
+  - Note: `android/` itself is gitignored (Continuous Native Generation) — `local.properties` and the `gradle.properties` memory caps get wiped every time `expo prebuild --clean` regenerates it, so they need re-adding after any clean prebuild. Not worth committing a workaround for; noted here for future reference.
+- **Verified end-to-end**: backend running against real MySQL (not H2), Android dev-client build installed and launched on a `Pixel_7` emulator, app renders the Welcome screen and beyond with zero errors. This is the first live (non-H2, non-typecheck-only) verification this project has had.
 
 ---
 
@@ -171,14 +181,15 @@ An architecture review found the frontend had no server-state caching — every 
 
 - **Backend:** `./mvnw test` — **21 tests pass** on in-memory H2 (register → login(BCrypt) → JWT auth → post → feed(paginated) → like → comment(paginated) → get-post-by-id → residents(paginated, wing filter) → order lifecycle & authorization → orders(paginated) → follow/unfollow & counts → followers/following lists → notifications (like, comment, follow, order status) → post pricing → order snapshot/total → order-detail authorization → input validation → auth rate limiting → **Google Sign-In (new identity, invalid token, complete registration, taken username, account linking)**). No MySQL required.
 - **Frontend:** `npx tsc --noEmit` — **clean**, including through the TanStack Query migration (verified after every one of its 10 incremental steps).
-- ⚠️ **Not yet run against a live DB** — the dev machine's MySQL password differs from the committed default and `zencoo_userdb` isn't migrated here yet. Set `DB_PASSWORD` (etc.) and create the database to run for real. The user plans to set up a fresh local MySQL instance next, which will also unblock live Google Sign-In testing and give the first opportunity to manually exercise the new Query caching layer in a running app.
+- **Live end-to-end:** backend running against a real local MySQL instance (not H2); Android dev-client build installed and running on an emulator; signup/login, feed, and navigation all manually exercised with no errors. First live verification pass this project has had — see "Live local environment" above.
 
 ---
 
 ## Remaining roadmap
 
-1. **Google Sign-In — needs manual setup before it can be tested live**: a Google Cloud Console OAuth consent screen + 3 client IDs (Web/iOS/Android — Android needs the app's package name and a SHA-1 keystore fingerprint), fed into `GOOGLE_OAUTH_CLIENT_ID_WEB/IOS/ANDROID` (frontend) and `GOOGLE_OAUTH_CLIENT_IDS` (backend). Also needs the fresh local MySQL instance the user is setting up.
-2. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
+1. **Google Sign-In — one setup step left before it can be tested live**: a Google Cloud Console OAuth consent screen + 3 client IDs (Web/iOS/Android — Android needs the app's package name `com.kedarnath08.zfrontend` and a SHA-1 keystore fingerprint), fed into `GOOGLE_OAUTH_CLIENT_ID_WEB/IOS/ANDROID` (frontend `.env`) and `GOOGLE_OAUTH_CLIENT_IDS` (backend env var or the local `application.properties` override). The DB/backend/emulator prerequisites that used to block this are now done.
+2. **Manually exercise the rest of the app now that it's live**: everything in the Feature status table above has been unit/integration-tested (H2) and typechecked, but most of it hasn't yet been clicked through in the real running app the way Feed/signup/navigation have. Worth a pass: posting, orders (place → accept/reject/complete/cancel), follow/followers, notifications, profile editing.
+3. **Messaging — DEFERRED TO LAST (biggest, most complex piece).** Must be **secure real-time chat** on par with WhatsApp/Instagram DMs: 1:1 (and later group) conversations, message persistence + delivery/read receipts, real-time transport (WebSocket/STOMP or similar), and **end-to-end encryption** (client-side key management; server stores only ciphertext). This is effectively its own subproject and will be scoped separately once everything above is done. The "Message" button on profiles stays a placeholder until then.
 
 ---
 

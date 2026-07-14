@@ -19,16 +19,16 @@ The project is split into two independent repos/folders:
 
 ---
 
-## Current state (updated 2026-07-08)
+## Current state (updated 2026-07-14)
 
-A production-hardening pass (phases 1–6) and feature-completion pass (residents, orders, follow, post-detail, notifications) were done on top of the original prototype, followed by a backend efficiency/pagination pass, a screens folder reorganization, and a from-scratch Google Sign-In implementation. Status now:
+A production-hardening pass (phases 1–6) and feature-completion pass (residents, orders, follow, post-detail, notifications) were done on top of the original prototype, followed by a backend efficiency/pagination pass, a screens folder reorganization, a from-scratch Google Sign-In implementation, a TanStack Query migration, and — most recently — standing up a real local dev environment (MySQL + backend + Android emulator) and verifying the app live for the first time. Status now:
 
-- ✅ **Real, wired to backend:** Sign-up (auto-login), login (BCrypt + JWT), **Google Sign-In** (sign in or onboard with a Google account, own `com.zencoo.google` backend package + `screens/userAuth/google/` frontend folder), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
+- ✅ **Real, wired to backend, and now verified live (not just typechecked/H2-tested):** Sign-up (auto-login), login (BCrypt + JWT), **Google Sign-In** (sign in or onboard with a Google account, own `com.zencoo.google` backend package + `screens/userAuth/google/` frontend folder — the password-based half of this is live-verified; the actual Google OAuth handshake still needs Cloud Console credentials, see below), **persistent login** across restarts, fetch own profile, edit bio / hometown / profile picture, **the whole feed** (posts, likes, comments), **creating posts** (image upload → Cloudinary → post record), logout.
 - ✅ **Now also live:** Residents directory + Other users' profiles (`/api/residents`); the full **Orders** system (`/api/orders`) with an **order-detail screen** (status timeline, price, role-aware actions); **post pricing** (optional price on a post, snapshotted into the order at purchase time so later edits don't rewrite history); **My Profile's posts grid** (real posts + delete); the **Follow** system — follow/unfollow with real follower counts (`/api/users/{id}/follow`); **followers/following list screens** (`/api/users/{id}/followers|following`); a **post-detail screen** (`GET /api/posts/{id}`) reachable from any post grid; and a **real-time notifications system** (bell icon with unread badge, tap → notifications screen, auto-created for likes/comments/follows/order-status-changes).
 - ✅ **Pagination**: feed, residents directory, post comments, and orders (placed/received) are all infinite-scroll (`page`/`size` query params backend-side, `useInfiniteQuery` frontend-side) instead of loading unbounded lists.
-- ✅ **Server-state caching**: the frontend adopted `@tanstack/react-query` as a data-fetching/caching layer (not a global state store — the app still has no Redux/MobX/Zustand, deliberately) — see "Data layer" under the frontend section below.
-- 🟢 **Core app is feature-complete and backend-driven.** Only profile `headerBg` still comes from a local default (no backend concept yet). Only messaging remains — see below.
-- ⚠️ **Google Sign-In is code-complete but not yet live-tested** — needs the user's own Google Cloud Console OAuth client IDs and a running local MySQL instance (both explicitly deferred to a later step).
+- ✅ **Server-state caching**: the frontend adopted `@tanstack/react-query` as a data-fetching/caching layer (not a global state store — the app still has no Redux/MobX/Zustand, deliberately) — see "Data layer" under the frontend section below. Confirmed working live: pagination survives navigating away and back instead of collapsing to page 1.
+- 🟢 **Core app is feature-complete and backend-driven, and the local dev loop (MySQL → backend → emulator) now works end to end.** Only profile `headerBg` still comes from a local default (no backend concept yet). Only messaging remains as a major unbuilt feature — see below.
+- ⚠️ **Google Sign-In needs one more setup step to be fully live-tested** — Google Cloud Console OAuth client IDs (Web/iOS/Android), not yet configured. Everything else it depends on (DB, backend, emulator) is now in place.
 
 ### What the hardening pass changed
 1. **Passwords** are now BCrypt-hashed (`BCryptPasswordEncoder`); credential logging removed.
@@ -241,26 +241,29 @@ All screen styles live in `src/styles/*.ts` as `StyleSheet` objects (one file pe
 
 **Backend:**
 1. Start MySQL locally and create the `zencoo_userdb` database (Hibernate creates the *tables*, but the database itself must exist).
-2. Point the app at your DB — either edit `application.properties` or set env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`. (The committed default is `root`/`root`; the current dev machine's MySQL uses a different password and the DB hasn't been migrated here yet.) For production also set `JWT_SECRET` (≥ 64 chars) and `CORS_ALLOWED_ORIGINS`.
+2. Point the app at your DB. Preferred for local dev: create a gitignored `zencoo-backend-main/application.properties` (project root, sibling to `pom.xml`) with just `spring.datasource.password=...` (or whichever fields differ from the committed default `root`/`root`) — Spring Boot auto-merges this over the classpath config, so you never need to set an env var per run. Alternatively set env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`. For production also set `JWT_SECRET` (≥ 64 chars) and `CORS_ALLOWED_ORIGINS`.
 3. `cd zencoo-backend-main && ./mvnw spring-boot:run` → serves on `:8080`.
 4. **No DB? Run the tests:** `./mvnw test` boots the whole app on in-memory H2 and exercises the auth + posts flow — good for verifying changes without MySQL.
 
 **Frontend:**
 1. `cd zencoo-frontend-main && npm install`.
-2. Android emulator: `adb reverse tcp:8080 tcp:8080` (then `localhost` works). Real device: set `EXPO_PUBLIC_API_URL=http://<your-PC-LAN-IP>:8080`.
-3. `npx expo start` (or `npm run android`). Needs a dev build (`expo-dev-client`) for the native modules (secure-store, image-picker).
+2. Set `ANDROID_HOME` (Android SDK location, typically `%LOCALAPPDATA%\Android\Sdk` on Windows).
+3. Android emulator: `adb reverse tcp:8080 tcp:8080` and `adb reverse tcp:8081 tcp:8081` (then `localhost` works for both the backend and Metro — more robust than relying on the emulator's LAN-IP auto-discovery, which breaks if the host's IP changes between sessions). Real device: set `EXPO_PUBLIC_API_URL=http://<your-PC-LAN-IP>:8080`.
+4. `npx expo start` (or `npm run android` for the first native build / after adding a native dependency). Needs a dev build (`expo-dev-client`) for the native modules (secure-store, image-picker, auth-session, crypto, application, web-browser).
+5. **If a fresh native dependency throws `Cannot find native module 'X'` at runtime**: check whether `X` actually landed in the top-level `node_modules/X` — some packages (e.g. `expo-auth-session`'s own dependencies) can get installed *nested* inside another package's `node_modules` instead of hoisted, which Metro resolves fine but Android's native autolinking misses entirely. Fix: `npx expo install <missing-package>` to force it to the top level, then `npx expo prebuild --clean --platform android` and rebuild. (`android/` itself is gitignored/regenerated — any local `local.properties`/`gradle.properties` tweaks need re-adding after a clean prebuild.)
 
 ---
 
 ## Suggested next steps (if you resume this)
 
-Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen), ✅ backend efficiency pass + pagination (feed/residents/comments/orders), ✅ screens folder restructuring, ✅ Google Sign-In (code-complete, not yet live-tested), ✅ TanStack Query adoption (server-state caching, cross-screen cache sync, typecheck-verified only). Remaining:
+Done so far: ✅ BCrypt + secrets, ✅ persistent login, ✅ centralized API client, ✅ posts/feed + wiring, ✅ posting, ✅ residents + other-user profiles, ✅ orders (place + manage), ✅ My Profile posts grid + delete, ✅ follow system, ✅ dead-code/deps cleanup, ✅ prod hardening (validation, rate limiting, open-in-view), ✅ post-detail screen, ✅ followers/following list screens, ✅ notifications system, ✅ richer ordering (post pricing + order-detail screen), ✅ backend efficiency pass + pagination (feed/residents/comments/orders), ✅ screens folder restructuring, ✅ Google Sign-In (code-complete; password-based accounts live-verified, OAuth handshake itself still needs Cloud Console credentials), ✅ TanStack Query adoption (server-state caching, cross-screen cache sync — now confirmed live, not just typechecked), ✅ **live local environment stood up** (real MySQL + backend + Android emulator, first live end-to-end verification this project has had). Remaining:
 
-1. **Google Sign-In needs manual setup to go live**: Google Cloud Console OAuth client IDs (Web/iOS/Android) + a local MySQL instance — both on the user to set up next. The same MySQL setup is also the first chance to manually exercise the new Query caching layer in a running app.
-2. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
+1. **Google Sign-In needs one more setup step to go fully live**: Google Cloud Console OAuth client IDs (Web/iOS/Android). Everything else it depends on (DB, backend, emulator) is done.
+2. **Manually exercise the rest of the app live**: most of the feature table is H2/typecheck-verified but hasn't yet been clicked through in the running app the way signup/feed/navigation have (posting, orders, follow, notifications, profile editing).
+3. **Messaging — DEFERRED TO LAST.** A full secure real-time chat (WhatsApp/Instagram-grade): 1:1/group conversations, persistence, delivery/read receipts, WebSocket transport, and end-to-end encryption (server stores only ciphertext). Its own subproject; the profile "Message" button stays a placeholder until then.
 
 See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the current feature-by-feature status dashboard.
 
 ---
 
-*Originally recovered 2026-07-05; updated 2026-07-08 after a production-hardening pass, follow/friends system, dead-code cleanup, post-detail/followers-list screens, backend efficiency + pagination pass, screens folder restructuring, Google Sign-In, and TanStack Query adoption. Owner: kedarnath08 (Expo). If details here drift from the code, trust the code.*
+*Originally recovered 2026-07-05; updated 2026-07-14 after a production-hardening pass, follow/friends system, dead-code cleanup, post-detail/followers-list screens, backend efficiency + pagination pass, screens folder restructuring, Google Sign-In, TanStack Query adoption, and standing up a live local dev environment (MySQL + backend + Android emulator, verified end-to-end). Owner: kedarnath08 (Expo). If details here drift from the code, trust the code.*
