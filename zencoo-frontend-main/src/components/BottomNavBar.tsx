@@ -8,31 +8,33 @@ import BuildingIcon from "../../assets/icons/Residents.svg";
 import PlusIcon from "../../assets/icons/NewPost.svg";
 import ChecklistIcon from "../../assets/icons/list.svg";
 import AccountIcon from "../../assets/icons/MyProfile.svg";
+import { tokens } from "../theme/colors";
 
 interface Props extends BottomTabBarProps {}
 
 const NAV_HEIGHT = 64;
+const ICON_COLOR = tokens.ink900;
 
 const BottomNavBar: React.FC<Props> = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
 
   // Tab config for easier mapping
   const tabs = [
-    { name: "Feed", icon: <HomeIcon width={28} height={28} /> },
+    { name: "Feed", icon: <HomeIcon width={28} height={28} color={ICON_COLOR} /> },
     {
       name: "Residents",
-      icon: <BuildingIcon width={28} height={28} color="#222" />,
+      icon: <BuildingIcon width={28} height={28} color={ICON_COLOR} />,
     },
     {
       name: "NewPost",
-      icon: <PlusIcon width={22} height={22} color="#222" />,
+      icon: <PlusIcon width={22} height={22} color={ICON_COLOR} />,
       isPlus: true,
     },
     {
       name: "Orders",
-      icon: <ChecklistIcon width={28} height={28} color="#222" />,
+      icon: <ChecklistIcon width={28} height={28} color={ICON_COLOR} />,
     },
-    { name: "Myprofile", icon: <AccountIcon width={28} height={28} /> },
+    { name: "Myprofile", icon: <AccountIcon width={28} height={28} color={ICON_COLOR} /> },
   ];
 
   return (
@@ -97,7 +99,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    backgroundColor: "#FF8C00",
+    backgroundColor: tokens.primary,
     height: NAV_HEIGHT,
     paddingHorizontal: 10,
     shadowColor: "#000",
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
   },
   plusBorder: {
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: tokens.ink900,
     borderRadius: 22,
     width: 32,
     height: 32,

@@ -18,6 +18,9 @@ import { queryKeys } from "../api/queryKeys";
 import ScreenHeader from "../components/ScreenHeader";
 import LoadingView from "../components/LoadingView";
 import EmptyState from "../components/EmptyState";
+import { tokens } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { radius, spacing } from "../theme/spacing";
 
 type NavigationProp = NativeStackNavigationProp<FeedStackParamList>;
 
@@ -109,7 +112,7 @@ const NotificationsScreen: React.FC = () => {
                     : "cart"
                 }
                 size={20}
-                color={item.type === "LIKE" ? "#FF6B6B" : "#FF8C00"}
+                color={item.type === "LIKE" ? tokens.danger : tokens.primary}
               />
             </View>
             <View style={styles.content}>
@@ -126,7 +129,7 @@ const NotificationsScreen: React.FC = () => {
         )}
         ListEmptyComponent={
           <EmptyState
-            icon={<Ionicons name="notifications-off" size={48} color="#CCC" />}
+            icon={<Ionicons name="notifications-off" size={48} color={tokens.line} />}
             message="No notifications yet"
             style={styles.emptyContainer}
             textStyle={styles.emptyText}
@@ -142,7 +145,7 @@ const NotificationsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E5ECF6",
+    backgroundColor: tokens.canvas,
   },
   centered: {
     justifyContent: "center",
@@ -152,64 +155,63 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: tokens.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
+    borderBottomColor: tokens.line,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    ...typography.heading,
+    color: tokens.ink900,
   },
   notificationItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 12,
-    marginVertical: 6,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginHorizontal: spacing.md,
+    marginVertical: spacing.xs,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
     borderLeftWidth: 4,
     borderLeftColor: "transparent",
   },
   unreadItem: {
-    backgroundColor: "#F9F9F9",
-    borderLeftColor: "#FF8C00",
+    backgroundColor: tokens.canvas,
+    borderLeftColor: tokens.primary,
   },
   iconWrapper: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFF5F0",
+    backgroundColor: tokens.primaryTint,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   content: {
     flex: 1,
   },
   message: {
-    fontSize: 14,
-    color: "#666",
+    ...typography.body,
+    color: tokens.ink600,
     marginTop: 2,
   },
   time: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 4,
+    ...typography.caption,
+    color: tokens.ink400,
+    marginTop: spacing.xs,
   },
   unreadDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#FF8C00",
-    marginLeft: 8,
+    backgroundColor: tokens.primary,
+    marginLeft: spacing.sm,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     paddingBottom: 80,
   },
   emptyContainer: {
@@ -219,9 +221,9 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    fontSize: 16,
-    color: "#999",
-    marginTop: 12,
+    ...typography.body,
+    color: tokens.ink400,
+    marginTop: spacing.md,
   },
 });
 

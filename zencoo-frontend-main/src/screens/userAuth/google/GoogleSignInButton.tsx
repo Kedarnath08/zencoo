@@ -11,6 +11,9 @@ import {
   GOOGLE_OAUTH_CLIENT_ID_IOS,
   GOOGLE_OAUTH_CLIENT_ID_ANDROID,
 } from "../../../config/env";
+import { tokens } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
+import { radius } from "../../../theme/spacing";
 
 // Required once per app so the OAuth browser tab closes itself after redirecting back.
 WebBrowser.maybeCompleteAuthSession();
@@ -79,10 +82,10 @@ const GoogleSignInButton: React.FC = () => {
       activeOpacity={0.7}
     >
       {submitting ? (
-        <ActivityIndicator color="#444" />
+        <ActivityIndicator color={tokens.ink600} />
       ) : (
         <>
-          <Ionicons name="logo-google" size={20} color="#444" style={{ marginRight: 10 }} />
+          <Ionicons name="logo-google" size={20} color={tokens.ink600} style={{ marginRight: 10 }} />
           <Text style={styles.text}>Continue with Google</Text>
         </>
       )}
@@ -95,17 +98,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 24,
-    height: 48,
+    borderWidth: 1.5,
+    borderColor: tokens.line,
+    borderRadius: radius.pill,
+    height: 50,
     marginTop: 12,
-    backgroundColor: "#fff",
+    backgroundColor: tokens.surface,
   },
   text: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#444",
+    ...typography.heading,
+    color: tokens.ink600,
   },
 });
 

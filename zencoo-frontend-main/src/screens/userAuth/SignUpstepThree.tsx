@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
-import styles from "../../styles/signupStyles";
 import { checkUsernameUnique, registerUser } from "../../api/user";
 import { useAuth } from "../../context/AuthContext";
-import AuthLogo from "../../components/auth/AuthLogo";
+import TextField from "../../components/ui/TextField";
+import Button from "../../components/ui/Button";
+import StepIndicator from "../../components/ui/StepIndicator";
 import BackArrowButton from "../../components/auth/BackArrowButton";
-import LoginFooterLink from "../../components/auth/LoginFooterLink";
-import FormField from "../../components/auth/FormField";
+import { tokens } from "../../theme/colors";
+import { typography } from "../../theme/typography";
+import { spacing } from "../../theme/spacing";
 
 const UsernameSchema = Yup.string()
   .matches(/^@[a-zA-Z0-9_]{4,}$/, "Invalid username")
@@ -54,9 +56,7 @@ export default function SignUpStepThree({ route, navigation }: any) {
   const [checking, setChecking] = useState(false);
   const [unique, setUnique] = useState(false);
   const [validationMsg, setValidationMsg] = useState("");
-  const [validationColor, setValidationColor] = useState("#888");
   const [initialUsername, setInitialUsername] = useState("");
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [username, setUsername] = useState(initialUsername);
 
   useEffect(() => {
@@ -65,10 +65,7 @@ export default function SignUpStepThree({ route, navigation }: any) {
       setInitialUsername(uname);
       checkUsernameUnique(uname).then((isUnique: boolean) => {
         setUnique(isUnique);
-        setValidationMsg(
-          isUnique ? "Username is available!" : "Username not available!"
-        );
-        setValidationColor(isUnique ? "green" : "red");
+        setValidationMsg(isUnique ? "Username is available!" : "Username not available!");
         setChecking(false);
       });
     });
@@ -79,7 +76,6 @@ export default function SignUpStepThree({ route, navigation }: any) {
     setUnique(false);
     if (!UsernameSchema.isValidSync(username)) {
       setValidationMsg("Invalid username");
-      setValidationColor("red");
       setUnique(false);
       return;
     }
@@ -91,30 +87,29 @@ export default function SignUpStepThree({ route, navigation }: any) {
   const debouncedCheck = debounce(async (uname: string) => {
     const isUnique = await checkUsernameUnique(uname);
     setUnique(isUnique);
-    setValidationMsg(
-      isUnique ? "Username is available!" : "Username not available!"
-    );
-    setValidationColor(isUnique ? "green" : "red");
+    setValidationMsg(isUnique ? "Username is available!" : "Username not available!");
     setChecking(false);
   }, 400);
+
+  const isSuccess = unique && validationMsg === "Username is available!";
 
   return (
     <View style={styles.container}>
       <BackArrowButton onPress={() => navigation.goBack()} />
-      <AuthLogo containerStyle={styles.logoContainer} />
-      <Text style={{ fontSize: 18, marginBottom: 16, textAlign: "center" }}>
-        Pick your <Text style={{ fontWeight: "bold" }}>@username</Text>
-      </Text>
+      <View style={styles.header}>
+        <Image source={require("../../../assets/images/zencoo.png")} style={styles.logo} />
+        <StepIndicator step={3} total={3} />
+      </View>
+
       <Formik
         enableReinitialize
         initialValues={{ username: initialUsername }}
         validateOnChange={false}
         validateOnBlur={true}
         validate={async (values) => {
-          let error: any = {};
+          const error: any = {};
           if (!UsernameSchema.isValidSync(values.username)) {
             setValidationMsg("Invalid username");
-            setValidationColor("red");
             setUnique(false);
             error.username = "Invalid username";
             return error;
@@ -122,10 +117,7 @@ export default function SignUpStepThree({ route, navigation }: any) {
           setChecking(true);
           const isUnique = await checkUsernameUnique(values.username);
           setUnique(isUnique);
-          setValidationMsg(
-            isUnique ? "Username is available!" : "Username not available!"
-          );
-          setValidationColor(isUnique ? "green" : "red");
+          setValidationMsg(isUnique ? "Username is available!" : "Username not available!");
           setChecking(false);
           if (!isUnique) {
             error.username = "Username not available!";
@@ -150,67 +142,31 @@ export default function SignUpStepThree({ route, navigation }: any) {
           }
         }}
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-          setFieldTouched,
-          setFieldValue,
-        }) => (
+        {({ handleSubmit, values, errors, isSubmitting, setFieldValue, setFieldTouched }) => (
           <>
-            <FormField
+            <Text style={styles.headline}>Pick your @username</Text>
+
+            <TextField
+              label="Username"
               placeholder="@username"
-              focused={focusedInput === "userName"}
-              showError={false}
-              styles={styles}
               value={values.username}
               onChangeText={(text) => {
                 setFieldValue("username", text);
-                setUsername(text); // update local state for debounce
+                setUsername(text);
               }}
               onBlur={() => setFieldTouched("username", true)}
-              onFocus={() => setFocusedInput("userName")}
               autoCapitalize="none"
+              error={!isSuccess && !checking && validationMsg ? validationMsg : undefined}
+              success={isSuccess && !checking ? validationMsg : undefined}
+              rightAccessory={checking ? <ActivityIndicator size="small" color={tokens.ink400} /> : undefined}
             />
-            {checking && <ActivityIndicator size="small" />}
-            {validationMsg !== "" && (
-              <Text style={{ color: validationColor, marginTop: 4 }}>
-                {validationMsg}
-              </Text>
-            )}
 
-            <TouchableOpacity
-              style={[
-                styles.button,
-                (!values.username ||
-                  !!errors.username ||
-                  !unique ||
-                  isSubmitting ||
-                  checking) && { opacity: 0.5 },
-              ]}
+            <Button
+              title="Continue"
               onPress={handleSubmit as any}
-              disabled={
-                !values.username ||
-                !!errors.username ||
-                !unique ||
-                isSubmitting ||
-                checking
-              }
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Continue</Text>
-              )}
-            </TouchableOpacity>
-
-            <LoginFooterLink
-              onPress={() => navigation.navigate("Login")}
-              styles={styles}
+              loading={isSubmitting}
+              disabled={!values.username || !!errors.username || !unique || checking}
+              style={{ marginTop: spacing.sm }}
             />
           </>
         )}
@@ -218,3 +174,27 @@ export default function SignUpStepThree({ route, navigation }: any) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 64,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xxl,
+  },
+  logo: {
+    width: 140,
+    height: 46,
+    resizeMode: "contain",
+    marginBottom: spacing.lg,
+  },
+  headline: {
+    ...typography.title,
+    color: tokens.ink900,
+    marginBottom: spacing.xl,
+  },
+});

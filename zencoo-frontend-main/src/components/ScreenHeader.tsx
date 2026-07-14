@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleProp, Text, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { colors } from "../theme/colors";
+import { tokens } from "../theme/colors";
 
 interface ScreenHeaderProps {
   title: string;
@@ -20,7 +20,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   onBack,
   iconSize = 28,
-  iconColor = colors.textMuted,
+  iconColor = tokens.ink600,
   right,
   style,
   titleStyle,

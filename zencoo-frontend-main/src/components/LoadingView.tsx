@@ -1,6 +1,6 @@
 import React from "react";
 import { ActivityIndicator, StyleProp, ViewStyle } from "react-native";
-import { colors } from "../theme/colors";
+import { tokens } from "../theme/colors";
 
 interface LoadingViewProps {
   size?: "small" | "large";
@@ -11,7 +11,7 @@ interface LoadingViewProps {
 /** Shared loading spinner — same default size/color used across screens. */
 const LoadingView: React.FC<LoadingViewProps> = ({
   size = "large",
-  color = colors.primary,
+  color = tokens.primary,
   style,
 }) => <ActivityIndicator size={size} color={color} style={style} />;
 

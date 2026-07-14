@@ -1,16 +1,15 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, Image, Pressable, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Order } from "../api/orders";
 import { formatDateTime } from "../utils/time";
 import { formatPrice } from "../utils/currency";
+import { ORDER_STATUS_TONE } from "../utils/orderStatus";
+import Card from "./ui/Card";
+import Badge from "./ui/Badge";
+import { tokens } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { radius, spacing } from "../theme/spacing";
 
 const placeholder = require("../../assets/images/profile-placeholder.jpg");
 
@@ -25,81 +24,65 @@ const PlacedOrderCard = ({
   onSellerPress: (sellerId: number) => void;
   onCancel?: () => void;
 }) => (
-  <TouchableOpacity
-    style={styles.card}
-    onPress={onPress}
-    activeOpacity={onPress ? 0.8 : 1}
-    disabled={!onPress}
-  >
-    {/* X button for pending orders */}
-    {order.status === "PENDING" && onCancel && (
-      <TouchableOpacity
-        style={styles.cancelBtn}
-        onPress={onCancel}
-        hitSlop={10}
-      >
-        <MaterialCommunityIcons name="close" size={20} color="#fff" />
-      </TouchableOpacity>
-    )}
-    <Image
-      source={order.productImage ? { uri: order.productImage } : placeholder}
-      style={styles.productImage}
-    />
-    <View style={{ flex: 1, marginLeft: 12 }}>
-      <Text style={styles.productName}>{order.productName}</Text>
-      <View style={styles.row}>
-        <Text style={styles.label}>By: </Text>
-        <Pressable onPress={() => onSellerPress(order.sellerId)}>
-          <Text style={styles.sellerName}>{order.sellerName}</Text>
-        </Pressable>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Quantity: </Text>
-        <Text style={styles.value}>{order.quantity}</Text>
-      </View>
-      {order.unitPrice > 0 && (
-        <View style={styles.row}>
-          <Text style={styles.label}>Total: </Text>
-          <Text style={styles.value}>{formatPrice(order.totalPrice)}</Text>
-        </View>
+  <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.85 : 1} disabled={!onPress}>
+    <Card style={styles.card}>
+      {order.status === "PENDING" && onCancel && (
+        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} hitSlop={10}>
+          <MaterialCommunityIcons name="close" size={18} color="#fff" />
+        </TouchableOpacity>
       )}
-      <View style={styles.row}>
-        <Text style={styles.label}>Placed on: </Text>
-        <Text style={styles.value}>{formatDateTime(order.createdAt)}</Text>
+      <Image
+        source={order.productImage ? { uri: order.productImage } : placeholder}
+        style={styles.productImage}
+      />
+      <View style={{ flex: 1, marginLeft: spacing.md }}>
+        <Text style={styles.productName}>{order.productName}</Text>
+        <View style={styles.row}>
+          <Text style={styles.label}>By: </Text>
+          <Pressable onPress={() => onSellerPress(order.sellerId)}>
+            <Text style={styles.sellerName}>{order.sellerName}</Text>
+          </Pressable>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Quantity: </Text>
+          <Text style={styles.value}>{order.quantity}</Text>
+        </View>
+        {order.unitPrice > 0 && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Total: </Text>
+            <Text style={styles.value}>{formatPrice(order.totalPrice)}</Text>
+          </View>
+        )}
+        <View style={styles.row}>
+          <Text style={styles.label}>Placed on: </Text>
+          <Text style={styles.value}>{formatDateTime(order.createdAt)}</Text>
+        </View>
+        <Badge
+          label={order.status}
+          tone={ORDER_STATUS_TONE[order.status]}
+          style={{ marginTop: spacing.xs }}
+        />
       </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Status: </Text>
-        <Text style={styles.value}>{order.status}</Text>
-      </View>
-    </View>
+    </Card>
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    marginBottom: spacing.lg,
     alignItems: "flex-start",
   },
   productImage: {
     width: 64,
     height: 64,
-    borderRadius: 12,
-    backgroundColor: "#eee",
+    borderRadius: radius.md,
+    backgroundColor: tokens.canvas,
   },
   productName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-    color: "#222",
+    ...typography.heading,
+    color: tokens.ink900,
+    marginBottom: spacing.xs,
   },
   row: {
     flexDirection: "row",
@@ -107,31 +90,28 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   label: {
-    fontSize: 15,
-    color: "#888",
-    fontWeight: "bold",
+    ...typography.body,
+    color: tokens.ink600,
   },
   value: {
-    fontSize: 15,
-    color: "#444",
+    ...typography.body,
+    color: tokens.ink900,
   },
   sellerName: {
-    fontSize: 16,
-    color: "#FF8C00",
-    fontWeight: "bold",
+    ...typography.heading,
+    color: tokens.primary,
   },
   cancelBtn: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "#B0B0B0",
-    borderRadius: 12,
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: tokens.ink400,
+    borderRadius: radius.md,
     width: 24,
     height: 24,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
-    elevation: 2,
   },
 });
 

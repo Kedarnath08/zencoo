@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { styles as feedStyles } from "../styles/feedStyles";
 import { fetchPost, deletePost } from "../api/posts";
 import { timeAgo } from "../utils/time";
 import Avatar from "../components/Avatar";
@@ -28,6 +27,9 @@ import { useAddComment } from "../hooks/useAddComment";
 import { useLikePost } from "../hooks/useLikePost";
 import { removePostFromCache } from "../api/postsCache";
 import { queryKeys } from "../api/queryKeys";
+import { tokens } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { radius, spacing } from "../theme/spacing";
 
 type PostDetailParams = {
   postId: number;
@@ -95,43 +97,38 @@ const PostDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={feedStyles.centered}>
-        <LoadingView color="#FFA500" />
+      <View style={styles.centered}>
+        <LoadingView color={tokens.primary} />
       </View>
     );
   }
 
   if (!post) {
     return (
-      <View
-        style={[
-          feedStyles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <Text style={{ color: "#888" }}>This post is no longer available.</Text>
+      <View style={[styles.container, styles.centered]}>
+        <Text style={{ color: tokens.ink600 }}>This post is no longer available.</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={feedStyles.container}
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScreenHeader
         title="Post"
         onBack={() => navigation.goBack()}
         iconSize={26}
-        style={[local.header, { paddingTop: insets.top, height: headerHeight }]}
-        titleStyle={local.headerTitle}
+        style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
+        titleStyle={styles.headerTitle}
         right={
           isOwn ? (
             <TouchableOpacity onPress={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? (
-                <ActivityIndicator size="small" color="#F44336" />
+                <ActivityIndicator size="small" color={tokens.danger} />
               ) : (
-                <Ionicons name="trash-outline" size={22} color="#F44336" />
+                <Ionicons name="trash-outline" size={22} color={tokens.danger} />
               )}
             </TouchableOpacity>
           ) : (
@@ -146,15 +143,15 @@ const PostDetail: React.FC = () => {
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         ListHeaderComponent={
           <View>
-            <View style={feedStyles.cardHeader}>
-              <Avatar uri={post.profilePic} style={feedStyles.avatar} />
-              <View style={{ marginLeft: 10 }}>
-                <Text style={feedStyles.name}>{post.fullName}</Text>
-                <Text style={feedStyles.handle}>@{post.username}</Text>
+            <View style={styles.cardHeader}>
+              <Avatar uri={post.profilePic} size="sm" />
+              <View style={{ marginLeft: spacing.sm }}>
+                <Text style={styles.name}>{post.fullName}</Text>
+                <Text style={styles.handle}>@{post.username}</Text>
               </View>
             </View>
-            <Image source={{ uri: post.imageUrl }} style={local.image} />
-            <View style={local.actionRow}>
+            <Image source={{ uri: post.imageUrl }} style={styles.image} />
+            <View style={styles.actionRow}>
               <TouchableOpacity
                 onPress={handleLike}
                 style={{ flexDirection: "row", alignItems: "center" }}
@@ -162,46 +159,40 @@ const PostDetail: React.FC = () => {
                 <Icon
                   name={post.likedByMe ? "heart" : "heart-outline"}
                   size={26}
-                  color={post.likedByMe ? "#E94F37" : "#444"}
+                  color={post.likedByMe ? tokens.danger : tokens.ink600}
                 />
-                <Text style={local.countText}>{post.likeCount}</Text>
+                <Text style={styles.countText}>{post.likeCount}</Text>
               </TouchableOpacity>
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  marginLeft: 20,
+                  marginLeft: spacing.lg,
                 }}
               >
-                <Icon name="comment-outline" size={24} color="#444" />
-                <Text style={local.countText}>{post.commentCount}</Text>
+                <Icon name="comment-outline" size={24} color={tokens.ink600} />
+                <Text style={styles.countText}>{post.commentCount}</Text>
               </View>
             </View>
-            {post.caption ? (
-              <Text style={feedStyles.description}>{post.caption}</Text>
-            ) : null}
-            <Text style={feedStyles.timeText}>
-              Posted {timeAgo(post.createdAt)} ago
-            </Text>
-            <Text style={local.commentsHeading}>
-              Comments ({comments.length})
-            </Text>
+            {post.caption ? <Text style={styles.description}>{post.caption}</Text> : null}
+            <Text style={styles.timeText}>Posted {timeAgo(post.createdAt)} ago</Text>
+            <Text style={styles.commentsHeading}>Comments ({comments.length})</Text>
           </View>
         }
         renderItem={({ item }) => (
-          <View style={[feedStyles.commentItem, { paddingHorizontal: 18 }]}>
-            <Text style={{ fontWeight: "bold", color: "#222" }}>
+          <View style={styles.commentItem}>
+            <Text style={{ fontWeight: "bold", color: tokens.ink900 }}>
               @{item.username}
-              <Text style={{ color: "#B0B0B0", fontWeight: "normal" }}>
+              <Text style={{ color: tokens.ink400, fontWeight: "normal" }}>
                 {"  "}
                 {timeAgo(item.createdAt)}
               </Text>
             </Text>
-            <Text style={feedStyles.commentText}>{item.text}</Text>
+            <Text style={styles.commentText}>{item.text}</Text>
           </View>
         )}
         ListEmptyComponent={
-          <Text style={{ textAlign: "center", color: "#888", marginTop: 8 }}>
+          <Text style={{ textAlign: "center", color: tokens.ink600, marginTop: 8 }}>
             No comments yet. Be the first!
           </Text>
         }
@@ -213,28 +204,29 @@ const PostDetail: React.FC = () => {
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           commentsQuery.isFetchingNextPage ? (
-            <LoadingView color="#FFA500" style={{ marginVertical: 16 }} />
+            <LoadingView color={tokens.primary} style={{ marginVertical: 16 }} />
           ) : null
         }
       />
 
-      <View style={feedStyles.commentInput}>
+      <View style={styles.commentInput}>
         <TextInput
-          style={feedStyles.textInput}
+          style={styles.textInput}
           placeholder="Add a comment..."
+          placeholderTextColor={tokens.ink400}
           value={commentText}
           onChangeText={setCommentText}
           multiline
         />
         <TouchableOpacity
           onPress={submitComment}
-          style={feedStyles.sendButton}
+          style={styles.sendButton}
           disabled={addCommentMutation.isPending}
         >
           {addCommentMutation.isPending ? (
-            <ActivityIndicator size="small" color="#FFA500" />
+            <ActivityIndicator size="small" color={tokens.primary} />
           ) : (
-            <Icon name="send" size={22} color="#FFA500" />
+            <Icon name="send" size={22} color={tokens.primary} />
           )}
         </TouchableOpacity>
       </View>
@@ -242,48 +234,113 @@ const PostDetail: React.FC = () => {
   );
 };
 
-const local = StyleSheet.create({
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.canvas,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 4,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.line,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#222",
+    ...typography.heading,
+    color: tokens.ink900,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  name: {
+    ...typography.heading,
+    color: tokens.ink900,
+  },
+  handle: {
+    ...typography.caption,
+    color: tokens.ink600,
+    marginTop: 1,
   },
   image: {
     width: "100%",
     height: 320,
-    backgroundColor: "#eee",
+    backgroundColor: tokens.canvas,
   },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   countText: {
-    marginLeft: 6,
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#444",
+    marginLeft: spacing.xs,
+    ...typography.label,
+    color: tokens.ink600,
+  },
+  description: {
+    ...typography.body,
+    color: tokens.ink900,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  timeText: {
+    ...typography.caption,
+    color: tokens.ink400,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
   commentsHeading: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#222",
-    paddingHorizontal: 18,
-    marginTop: 6,
-    marginBottom: 4,
+    ...typography.heading,
+    color: tokens.ink900,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  commentItem: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  commentText: {
+    ...typography.body,
+    color: tokens.ink900,
+  },
+  commentInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.lg,
+    backgroundColor: tokens.surface,
+    borderTopWidth: 1,
+    borderTopColor: tokens.line,
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: tokens.line,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginRight: spacing.sm,
+    maxHeight: 100,
+    ...typography.body,
+    color: tokens.ink900,
+  },
+  sendButton: {
+    padding: spacing.sm,
   },
 });
 

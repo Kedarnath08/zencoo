@@ -3,6 +3,7 @@ import { FlatList, TouchableOpacity, Text, View } from "react-native";
 import ResidentsIcon from "../../../assets/icons/Residents.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "../../styles/wingsStyles";
+import { tokens } from "../../theme/colors";
 
 const WINGS = [
   { label: "Wing 1", value: "1" },
@@ -35,7 +36,7 @@ const Wing: React.FC<WingProps> = ({ onSelectWing, bottomPadding }) => {
         <ResidentsIcon
           width={26}
           height={26}
-          color="#222"
+          color={tokens.ink900}
           style={{ marginRight: 8 }}
         />
         <Text style={styles.headerTitle}>Residents</Text>

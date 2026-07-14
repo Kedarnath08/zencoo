@@ -33,6 +33,7 @@ import { queryKeys } from "../../api/queryKeys";
 import { useAuth } from "../../context/AuthContext";
 import ProfileStatsRow from "../../components/ProfileStatsRow";
 import PostsGrid from "../../components/PostsGrid";
+import { tokens } from "../../theme/colors";
 
 const profilePic = require("../../../assets/images/profile-placeholder.jpg");
 const imageMap: { [key: string]: any } = {
@@ -349,7 +350,7 @@ const MyProfileScreen: React.FC = () => {
             style={styles.backBtn}
             accessibilityLabel="Log out"
           >
-            <Ionicons name="log-out-outline" size={28} color="#444" />
+            <Ionicons name="log-out-outline" size={28} color={tokens.ink600} />
           </TouchableOpacity>
           {/* Centered camera icon as per your image, with pickHeaderImage functionality */}
           <TouchableOpacity
@@ -360,7 +361,7 @@ const MyProfileScreen: React.FC = () => {
             <MaterialIcons
               name="add-a-photo"
               size={96}
-              color="#bdbdbd"
+              color={tokens.ink400}
               style={{ opacity: 0.28 }}
             />
           </TouchableOpacity>
@@ -384,7 +385,7 @@ const MyProfileScreen: React.FC = () => {
                   onPress={pickAndUpload}
                   activeOpacity={0.7}
                 >
-                  <MaterialIcons name="edit" size={18} color="#ffff" />
+                  <MaterialIcons name="edit" size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
               <View style={styles.profileInfo}>
@@ -399,14 +400,14 @@ const MyProfileScreen: React.FC = () => {
                     <Ionicons
                       name="chevron-forward"
                       size={18}
-                      color="#222"
+                      color={tokens.ink900}
                       style={{ marginLeft: 2, marginTop: 6 }}
                     />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.username}>{profile.username}</Text>
                 <Text style={styles.subInfo}>
-                  <Ionicons name="business" size={14} color="#888" /> Wing{" "}
+                  <Ionicons name="business" size={14} color={tokens.ink600} /> Wing{" "}
                   {profile.wing} - {profile.door}
                 </Text>
               </View>
@@ -448,7 +449,7 @@ const MyProfileScreen: React.FC = () => {
                   <Ionicons
                     name="person-outline"
                     size={28}
-                    color="#888"
+                    color={tokens.ink600}
                     style={{ marginRight: 10 }}
                   />
                 )
@@ -478,7 +479,7 @@ const MyProfileScreen: React.FC = () => {
                   disabled={hometownState.saving}
                   style={styles.hometownInputBtn}
                 >
-                  <Ionicons name="checkmark" size={24} color="#007AFF" />
+                  <Ionicons name="checkmark" size={24} color={tokens.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() =>
@@ -491,7 +492,7 @@ const MyProfileScreen: React.FC = () => {
                   disabled={hometownState.saving}
                   style={styles.hometownInputBtn}
                 >
-                  <Ionicons name="close" size={24} color="#888" />
+                  <Ionicons name="close" size={24} color={tokens.ink600} />
                 </TouchableOpacity>
               </View>
             ) : (
@@ -501,7 +502,7 @@ const MyProfileScreen: React.FC = () => {
                   setHometownState((s) => ({ ...s, editing: true }))
                 }
               >
-                <Ionicons name="location-outline" size={18} color="#888" />
+                <Ionicons name="location-outline" size={18} color={tokens.ink600} />
                 <Text style={styles.hometownText}>
                   {profile.hometown ? profile.hometown : "Add hometown"}
                 </Text>
@@ -525,7 +526,7 @@ const MyProfileScreen: React.FC = () => {
                 <MaterialIcons
                   name="edit"
                   size={16}
-                  color="#888"
+                  color={tokens.ink600}
                   style={styles.editIcon}
                 />
               </View>
@@ -554,7 +555,7 @@ const MyProfileScreen: React.FC = () => {
               navigation.navigate("PostDetail", { postId: item.id, isOwn: true })
             }
             emptyMessage="You haven't posted yet."
-            emptyTextStyle={{ color: "#888", padding: 16 }}
+            emptyTextStyle={{ color: tokens.ink600, padding: 16 }}
             contentContainerStyle={[styles.postsGrid, { paddingBottom: 80 }]}
             activeOpacity={0.7}
             editMode={editMode}

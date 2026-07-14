@@ -1,17 +1,8 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  StyleSheet,
-} from "react-native";
+import { View, Text, Image, TouchableOpacity, ScrollView, Alert, StyleSheet } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrdersStackParamList } from "../../navigation/OrdersStack";
@@ -21,15 +12,17 @@ import { formatPrice } from "../../utils/currency";
 import { useRefreshOnFocus } from "../../hooks/useRefreshOnFocus";
 import { useUpdateOrderStatus } from "../../hooks/useUpdateOrderStatus";
 import { queryKeys } from "../../api/queryKeys";
+import { ORDER_STATUS_TONE } from "../../utils/orderStatus";
 import ScreenHeader from "../../components/ScreenHeader";
 import LoadingView from "../../components/LoadingView";
-import StatusBadge from "../../components/StatusBadge";
-import { colors } from "../../theme/colors";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import { tokens } from "../../theme/colors";
+import { typography } from "../../theme/typography";
+import { radius, spacing } from "../../theme/spacing";
 
 const placeholder = require("../../../assets/images/profile-placeholder.jpg");
-
-const LEAF_GREEN = colors.success;
-const RED = colors.danger;
 
 type Params = { orderId: number; role: "placed" | "received" };
 
@@ -88,7 +81,7 @@ const OrderDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[local.container, local.centered]}>
+      <View style={[styles.container, styles.centered]}>
         <LoadingView />
       </View>
     );
@@ -96,98 +89,82 @@ const OrderDetail: React.FC = () => {
 
   if (!order) {
     return (
-      <View style={[local.container, local.centered, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={local.backFloating}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={26} color="#444" />
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+        <TouchableOpacity style={styles.backFloating} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={26} color={tokens.ink600} />
         </TouchableOpacity>
-        <Text style={{ color: "#888" }}>This order is no longer available.</Text>
+        <Text style={{ color: tokens.ink600 }}>This order is no longer available.</Text>
       </View>
     );
   }
 
-  const isTerminalNegative =
-    order.status === "REJECTED" || order.status === "CANCELLED";
+  const isTerminalNegative = order.status === "REJECTED" || order.status === "CANCELLED";
   const counterpartyId = role === "placed" ? order.sellerId : order.buyerId;
   const counterpartyName = role === "placed" ? order.sellerName : order.buyerName;
   const counterpartyLabel = role === "placed" ? "Seller" : "Buyer";
   const currentStepIndex = STEPS.findIndex((s) => s.key === order.status);
 
   return (
-    <View style={[local.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
         title="Order Details"
         onBack={() => navigation.goBack()}
         iconSize={26}
-        style={local.header}
-        titleStyle={local.headerTitle}
+        style={styles.header}
+        titleStyle={styles.headerTitle}
       />
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-        <View style={local.productCard}>
+        <Card style={styles.productCard}>
           <Image
             source={order.productImage ? { uri: order.productImage } : placeholder}
-            style={local.productImage}
+            style={styles.productImage}
           />
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={local.productName}>{order.productName}</Text>
-            <Text style={local.qtyText}>Qty: {order.quantity}</Text>
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text style={styles.productName}>{order.productName}</Text>
+            <Text style={styles.qtyText}>Qty: {order.quantity}</Text>
             {order.unitPrice > 0 ? (
               <>
-                <Text style={local.priceLine}>
+                <Text style={styles.priceLine}>
                   {formatPrice(order.unitPrice)} × {order.quantity}
                 </Text>
-                <Text style={local.totalPrice}>
-                  Total: {formatPrice(order.totalPrice)}
-                </Text>
+                <Text style={styles.totalPrice}>Total: {formatPrice(order.totalPrice)}</Text>
               </>
             ) : (
-              <Text style={local.priceLine}>No price set</Text>
+              <Text style={styles.priceLine}>No price set</Text>
             )}
           </View>
-        </View>
+        </Card>
 
         {/* Status timeline */}
-        <View style={local.section}>
+        <Card style={styles.section}>
           {isTerminalNegative ? (
-            <StatusBadge
-              status={order.status}
+            <Badge
               label={`Order ${order.status}`}
+              tone={ORDER_STATUS_TONE[order.status]}
               icon={<Ionicons name="close-circle" size={18} color="#fff" />}
-              style={local.terminalBadge}
-              textStyle={local.terminalBadgeText}
             />
           ) : (
-            <View style={local.timeline}>
+            <View style={styles.timeline}>
               {STEPS.map((step, i) => {
                 const done = i <= currentStepIndex;
                 return (
                   <React.Fragment key={step.key}>
                     {i > 0 && (
                       <View
-                        style={[
-                          local.timelineLine,
-                          done && { backgroundColor: LEAF_GREEN },
-                        ]}
+                        style={[styles.timelineLine, done && { backgroundColor: tokens.success }]}
                       />
                     )}
-                    <View style={local.timelineStep}>
+                    <View style={styles.timelineStep}>
                       <View
-                        style={[
-                          local.timelineDot,
-                          done && { backgroundColor: LEAF_GREEN },
-                        ]}
+                        style={[styles.timelineDot, done && { backgroundColor: tokens.success }]}
                       >
-                        {done && (
-                          <Ionicons name="checkmark" size={14} color="#fff" />
-                        )}
+                        {done && <Ionicons name="checkmark" size={14} color="#fff" />}
                       </View>
                       <Text
                         style={[
-                          local.timelineLabel,
-                          done && { color: LEAF_GREEN, fontWeight: "bold" },
+                          styles.timelineLabel,
+                          done && { color: tokens.success, fontWeight: "bold" },
                         ]}
                       >
                         {step.label}
@@ -198,83 +175,48 @@ const OrderDetail: React.FC = () => {
               })}
             </View>
           )}
-        </View>
+        </Card>
 
         {/* Counterparty */}
-        <View style={local.section}>
-          <Text style={local.sectionLabel}>{counterpartyLabel}</Text>
+        <Card style={styles.section}>
+          <Text style={styles.sectionLabel}>{counterpartyLabel}</Text>
           <TouchableOpacity onPress={() => goToProfile(counterpartyId)}>
-            <Text style={local.linkText}>{counterpartyName}</Text>
+            <Text style={styles.linkText}>{counterpartyName}</Text>
           </TouchableOpacity>
-        </View>
+        </Card>
 
         {order.note ? (
-          <View style={local.section}>
-            <Text style={local.sectionLabel}>Note</Text>
-            <Text style={local.noteText}>{order.note}</Text>
-          </View>
+          <Card style={styles.section}>
+            <Text style={styles.sectionLabel}>Note</Text>
+            <Text style={styles.noteText}>{order.note}</Text>
+          </Card>
         ) : null}
 
-        <View style={local.section}>
-          <Text style={local.sectionLabel}>Placed</Text>
-          <Text style={local.value}>{formatDateTime(order.createdAt)}</Text>
-        </View>
-        <View style={local.section}>
-          <Text style={local.sectionLabel}>Last updated</Text>
-          <Text style={local.value}>{formatDateTime(order.updatedAt)}</Text>
-        </View>
+        <Card style={styles.section}>
+          <Text style={styles.sectionLabel}>Placed</Text>
+          <Text style={styles.value}>{formatDateTime(order.createdAt)}</Text>
+        </Card>
+        <Card style={styles.section}>
+          <Text style={styles.sectionLabel}>Last updated</Text>
+          <Text style={styles.value}>{formatDateTime(order.updatedAt)}</Text>
+        </Card>
 
         {/* Actions */}
         {role === "received" && order.status === "PENDING" && (
-          <View style={local.actionRow}>
-            <TouchableOpacity
-              style={[local.actionBtn, { backgroundColor: LEAF_GREEN }]}
-              onPress={() => changeStatus("ACCEPTED")}
-              disabled={busy}
-            >
-              <Icon name="check" size={20} color="#fff" />
-              <Text style={local.actionBtnText}>Accept</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[local.actionBtn, { backgroundColor: RED }]}
-              onPress={() => changeStatus("REJECTED")}
-              disabled={busy}
-            >
-              <Icon name="close" size={20} color="#fff" />
-              <Text style={local.actionBtnText}>Reject</Text>
-            </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <Button title="Accept" onPress={() => changeStatus("ACCEPTED")} disabled={busy} style={styles.actionBtn} />
+            <Button title="Reject" onPress={() => changeStatus("REJECTED")} disabled={busy} variant="destructive" style={styles.actionBtn} />
           </View>
         )}
         {role === "received" && order.status === "ACCEPTED" && (
-          <View style={local.actionRow}>
-            <TouchableOpacity
-              style={[local.actionBtn, { backgroundColor: LEAF_GREEN }]}
-              onPress={() => changeStatus("COMPLETED")}
-              disabled={busy}
-            >
-              <Icon name="check-all" size={20} color="#fff" />
-              <Text style={local.actionBtnText}>Completed</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[local.actionBtn, { backgroundColor: RED }]}
-              onPress={confirmCancel}
-              disabled={busy}
-            >
-              <Icon name="cancel" size={20} color="#fff" />
-              <Text style={local.actionBtnText}>Cancel</Text>
-            </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <Button title="Completed" onPress={() => changeStatus("COMPLETED")} disabled={busy} style={styles.actionBtn} />
+            <Button title="Cancel" onPress={confirmCancel} disabled={busy} variant="destructive" style={styles.actionBtn} />
           </View>
         )}
         {role === "placed" && order.status === "PENDING" && (
-          <View style={local.actionRow}>
-            <TouchableOpacity
-              style={[local.actionBtn, { backgroundColor: RED }]}
-              onPress={confirmCancel}
-              disabled={busy}
-            >
-              <Icon name="close" size={20} color="#fff" />
-              <Text style={local.actionBtnText}>Cancel order</Text>
-            </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <Button title="Cancel order" onPress={confirmCancel} disabled={busy} variant="destructive" style={styles.actionBtn} />
           </View>
         )}
       </ScrollView>
@@ -282,10 +224,10 @@ const OrderDetail: React.FC = () => {
   );
 };
 
-const local = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E5ECF6",
+    backgroundColor: tokens.canvas,
   },
   centered: {
     justifyContent: "center",
@@ -300,103 +242,68 @@ const local = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: tokens.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
+    borderBottomColor: tokens.line,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    ...typography.heading,
+    color: tokens.ink900,
   },
   productCard: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    margin: 16,
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    margin: spacing.lg,
+    marginBottom: spacing.sm,
   },
   productImage: {
     width: 80,
     height: 80,
-    borderRadius: 12,
-    backgroundColor: "#eee",
+    borderRadius: radius.md,
+    backgroundColor: tokens.canvas,
   },
   productName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#222",
-    marginBottom: 4,
+    ...typography.heading,
+    color: tokens.ink900,
+    marginBottom: spacing.xs,
   },
   qtyText: {
-    fontSize: 14,
-    color: "#888",
-    marginBottom: 4,
+    ...typography.caption,
+    color: tokens.ink600,
+    marginBottom: spacing.xs,
   },
   priceLine: {
-    fontSize: 15,
-    color: "#444",
+    ...typography.body,
+    color: tokens.ink900,
   },
   totalPrice: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FF8C00",
+    ...typography.heading,
+    color: tokens.primary,
     marginTop: 2,
   },
   section: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
   },
   sectionLabel: {
-    fontSize: 13,
-    color: "#888",
-    fontWeight: "bold",
-    marginBottom: 4,
+    ...typography.label,
+    color: tokens.ink600,
+    marginBottom: spacing.xs,
     textTransform: "uppercase",
   },
   linkText: {
-    fontSize: 17,
-    color: "#FF8C00",
-    fontWeight: "bold",
+    ...typography.heading,
+    color: tokens.primary,
   },
   noteText: {
-    fontSize: 15,
-    color: "#444",
+    ...typography.body,
+    color: tokens.ink900,
     fontStyle: "italic",
   },
   value: {
-    fontSize: 15,
-    color: "#444",
-  },
-  terminalBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  terminalBadgeText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-    marginLeft: 6,
+    ...typography.body,
+    color: tokens.ink900,
   },
   timeline: {
     flexDirection: "row",
@@ -410,42 +317,32 @@ const local = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "#ccc",
+    backgroundColor: tokens.line,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   timelineLine: {
     flex: 1,
     height: 3,
-    backgroundColor: "#ccc",
+    backgroundColor: tokens.line,
     marginTop: 12,
     marginHorizontal: -8,
   },
   timelineLabel: {
-    fontSize: 12,
-    color: "#888",
+    ...typography.caption,
+    color: tokens.ink600,
     textAlign: "center",
   },
   actionRow: {
     flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 8,
-    gap: 12,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    gap: spacing.md,
   },
   actionBtn: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  actionBtnText: {
-    color: "#fff",
-    fontWeight: "bold",
-    marginLeft: 6,
-    fontSize: 15,
+    height: 46,
   },
 });
 

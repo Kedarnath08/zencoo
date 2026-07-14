@@ -31,7 +31,7 @@ import { useComments, flattenComments } from "../hooks/useComments";
 import { useAddComment } from "../hooks/useAddComment";
 import { useLikePost } from "../hooks/useLikePost";
 import { queryKeys } from "../api/queryKeys";
-import { colors } from "../theme/colors";
+import { tokens } from "../theme/colors";
 import LoadingView from "../components/LoadingView";
 
 const PAGE_SIZE = 20;
@@ -149,7 +149,7 @@ const FeedScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <LoadingView color="#FFA500" />
+          <LoadingView color={tokens.primary} />
         </View>
       </SafeAreaView>
     );
@@ -157,7 +157,7 @@ const FeedScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor={tokens.surface} />
       {/* App Bar */}
       <View
         style={[
@@ -177,14 +177,14 @@ const FeedScreen: React.FC = () => {
           style={styles.notificationBtn}
           onPress={() => navigation.navigate("Notifications")}
         >
-          <Icon name="bell-outline" size={30} color={colors.primaryLight} />
+          <Icon name="bell-outline" size={28} color={tokens.ink900} />
           {unreadCount > 0 && (
             <View
               style={{
                 position: "absolute",
                 top: -4,
                 right: -4,
-                backgroundColor: colors.likeRed,
+                backgroundColor: tokens.danger,
                 borderRadius: 10,
                 width: 20,
                 height: 20,
@@ -222,12 +222,12 @@ const FeedScreen: React.FC = () => {
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           feedQuery.isFetchingNextPage ? (
-            <LoadingView color="#FFA500" style={{ marginVertical: 16 }} />
+            <LoadingView color={tokens.primary} style={{ marginVertical: 16 }} />
           ) : null
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Text style={{ color: "#888", marginTop: 40 }}>
+            <Text style={{ color: tokens.ink600, marginTop: 40 }}>
               {loadingError ?? "No posts yet. Be the first to share!"}
             </Text>
           </View>
@@ -249,16 +249,16 @@ const FeedScreen: React.FC = () => {
           </View>
           {commentsQuery.isLoading ? (
             <View style={styles.centered}>
-              <ActivityIndicator size="small" color="#FFA500" />
+              <ActivityIndicator size="small" color={tokens.primary} />
             </View>
           ) : (
             <FlatList
               data={comments}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
-                  <Text style={{ fontWeight: "bold", color: "#222" }}>
+                  <Text style={{ fontWeight: "bold", color: tokens.ink900 }}>
                     @{item.username}
-                    <Text style={{ color: "#B0B0B0", fontWeight: "normal" }}>
+                    <Text style={{ color: tokens.ink400, fontWeight: "normal" }}>
                       {"  "}
                       {timeAgo(item.createdAt)}
                     </Text>
@@ -269,7 +269,7 @@ const FeedScreen: React.FC = () => {
               keyExtractor={(item) => item.id.toString()}
               style={styles.commentsList}
               ListEmptyComponent={
-                <Text style={{ textAlign: "center", color: "#888", marginTop: 24 }}>
+                <Text style={{ textAlign: "center", color: tokens.ink600, marginTop: 24 }}>
                   No comments yet.
                 </Text>
               }
@@ -279,6 +279,7 @@ const FeedScreen: React.FC = () => {
             <TextInput
               style={styles.textInput}
               placeholder="Type your comment"
+              placeholderTextColor={tokens.ink400}
               value={commentController}
               onChangeText={setCommentController}
               multiline
@@ -289,7 +290,7 @@ const FeedScreen: React.FC = () => {
               disabled={addCommentMutation.isPending}
             >
               {addCommentMutation.isPending ? (
-                <ActivityIndicator size="small" color="#FFA500" />
+                <ActivityIndicator size="small" color={tokens.primary} />
               ) : (
                 <Icon name="send" size={22} style={styles.sendIcon} />
               )}

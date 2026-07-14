@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { uploadImageToCloudinary } from "../../utils/uploadImage";
 import { createPost } from "../../api/posts";
 import { queryKeys } from "../../api/queryKeys";
+import { tokens } from "../../theme/colors";
 
 const PostPreviewScreen: React.FC = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -103,7 +104,7 @@ const PostPreviewScreen: React.FC = () => {
         ]}
       >
         <View style={styles.plusBorder}>
-          <PlusIcon width={20} height={20} color="#222" />
+          <PlusIcon width={20} height={20} color={tokens.ink900} />
         </View>
         <Text style={styles.headerTitle}>Create a Post</Text>
       </View>
@@ -132,7 +133,7 @@ const PostPreviewScreen: React.FC = () => {
                     <Ionicons
                       name="camera-outline"
                       size={20}
-                      color="#222"
+                      color={tokens.ink900}
                       style={{ marginRight: 8 }}
                     />
                     <Text style={styles.selectButtonText}>Capture</Text>
@@ -144,7 +145,7 @@ const PostPreviewScreen: React.FC = () => {
                     <Ionicons
                       name="images-outline"
                       size={20}
-                      color="#222"
+                      color={tokens.ink900}
                       style={{ marginRight: 8 }}
                     />
                     <Text style={styles.selectButtonText}>Gallery</Text>

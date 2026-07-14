@@ -23,7 +23,7 @@ const ResidentListItem: React.FC<ResidentListItemProps> = ({
 }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
     <View style={residentsStyles.residentRow}>
-      <Avatar uri={profilePic} style={residentsStyles.avatar} />
+      <Avatar uri={profilePic} size="md" style={residentsStyles.avatar} />
       <View style={residentsStyles.info}>
         <Text style={residentsStyles.name}>{displayName}</Text>
         <Text style={residentsStyles.username}>@{username}</Text>

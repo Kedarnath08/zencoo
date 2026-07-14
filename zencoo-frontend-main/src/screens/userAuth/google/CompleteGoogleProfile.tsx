@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View, Alert } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import styles from "../../../styles/signupStyles";
-import AuthLogo from "../../../components/auth/AuthLogo";
 import BackArrowButton from "../../../components/auth/BackArrowButton";
-import FormField from "../../../components/auth/FormField";
+import TextField from "../../../components/ui/TextField";
+import Button from "../../../components/ui/Button";
 import { checkUsernameUnique } from "../../../api/user";
 import { completeGoogleSignup } from "../../../api/googleAuth";
 import { useAuth } from "../../../context/AuthContext";
+import { tokens } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
+import { spacing } from "../../../theme/spacing";
 
 type RouteParams = {
   idToken: string;
@@ -41,16 +43,13 @@ const CompleteGoogleProfile: React.FC = () => {
   const [checking, setChecking] = useState(false);
   const [unique, setUnique] = useState(false);
   const [validationMsg, setValidationMsg] = useState("");
-  const [validationColor, setValidationColor] = useState("#888");
   const [doorNumber, setDoorNumber] = useState("");
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const debouncedCheck = debounce(async (uname: string) => {
     const isUnique = await checkUsernameUnique(uname);
     setUnique(isUnique);
     setValidationMsg(isUnique ? "Username is available!" : "Username not available!");
-    setValidationColor(isUnique ? "green" : "red");
     setChecking(false);
   }, 400);
 
@@ -59,7 +58,6 @@ const CompleteGoogleProfile: React.FC = () => {
     setUnique(false);
     if (!USERNAME_PATTERN.test(username)) {
       setValidationMsg("Invalid username");
-      setValidationColor("red");
       return;
     }
     setChecking(true);
@@ -68,6 +66,7 @@ const CompleteGoogleProfile: React.FC = () => {
   }, [username]);
 
   const canSubmit = unique && !checking && doorNumber.trim().length > 0 && !submitting;
+  const isSuccess = unique && validationMsg === "Username is available!";
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -93,56 +92,66 @@ const CompleteGoogleProfile: React.FC = () => {
   return (
     <View style={styles.container}>
       <BackArrowButton onPress={() => navigation.goBack()} />
-      <AuthLogo containerStyle={styles.logoContainer} />
-      <Text style={{ fontSize: 18, marginBottom: 4, textAlign: "center" }}>
-        Welcome{fullName ? `, ${fullName}` : ""}!
-      </Text>
-      <Text style={{ fontSize: 14, marginBottom: 16, textAlign: "center", color: "#888" }}>
+      <View style={styles.header}>
+        <Image source={require("../../../../assets/images/zencoo.png")} style={styles.logo} />
+      </View>
+
+      <Text style={styles.headline}>Welcome{fullName ? `, ${fullName}` : ""}!</Text>
+      <Text style={styles.subtext}>
         Just a couple more details to finish setting up {email}.
       </Text>
 
-      <FormField
+      <TextField
+        label="Username"
         placeholder="@username"
-        focused={focusedInput === "username"}
-        showError={false}
-        styles={styles}
         value={username}
         onChangeText={setUsername}
-        onFocus={() => setFocusedInput("username")}
-        onBlur={() => setFocusedInput(null)}
         autoCapitalize="none"
+        error={!isSuccess && !checking && validationMsg ? validationMsg : undefined}
+        success={isSuccess && !checking ? validationMsg : undefined}
+        rightAccessory={checking ? <ActivityIndicator size="small" color={tokens.ink400} /> : undefined}
       />
-      {checking && <ActivityIndicator size="small" />}
-      {validationMsg !== "" && (
-        <Text style={{ color: validationColor, marginTop: 4, marginBottom: 8 }}>
-          {validationMsg}
-        </Text>
-      )}
+      <TextField label="Door Number" placeholder="A101" value={doorNumber} onChangeText={setDoorNumber} />
 
-      <FormField
-        placeholder="Door Number"
-        focused={focusedInput === "doorNumber"}
-        showError={false}
-        styles={styles}
-        value={doorNumber}
-        onChangeText={setDoorNumber}
-        onFocus={() => setFocusedInput("doorNumber")}
-        onBlur={() => setFocusedInput(null)}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, !canSubmit && { opacity: 0.5 }]}
+      <Button
+        title="Continue"
         onPress={handleSubmit}
+        loading={submitting}
         disabled={!canSubmit}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Continue</Text>
-        )}
-      </TouchableOpacity>
+        style={{ marginTop: spacing.sm }}
+      />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 64,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  logo: {
+    width: 140,
+    height: 46,
+    resizeMode: "contain",
+  },
+  headline: {
+    ...typography.title,
+    color: tokens.ink900,
+    textAlign: "center",
+    marginBottom: spacing.xs,
+  },
+  subtext: {
+    ...typography.body,
+    color: tokens.ink600,
+    textAlign: "center",
+    marginBottom: spacing.xl,
+  },
+});
 
 export default CompleteGoogleProfile;

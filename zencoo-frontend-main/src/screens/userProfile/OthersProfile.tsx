@@ -22,6 +22,7 @@ import Avatar from "../../components/Avatar";
 import ProfileStatsRow from "../../components/ProfileStatsRow";
 import PostsGrid from "../../components/PostsGrid";
 import LoadingView from "../../components/LoadingView";
+import { tokens } from "../../theme/colors";
 const HEADER_HEIGHT = 200;
 Dimensions.get("window");
 
@@ -68,7 +69,7 @@ const OthersProfileScreen: React.FC = () => {
   if (!profile) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ color: "#888" }}>Profile not found.</Text>
+        <Text style={{ color: tokens.ink600 }}>Profile not found.</Text>
       </View>
     );
   }
@@ -92,7 +93,7 @@ const OthersProfileScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={28} color="#444" />
+          <Ionicons name="arrow-back" size={28} color={tokens.ink600} />
         </TouchableOpacity>
       </View>
 
@@ -107,7 +108,7 @@ const OthersProfileScreen: React.FC = () => {
               <Text style={styles.name}>{profile.displayName}</Text>
               <Text style={styles.username}>@{profile.username}</Text>
               <Text style={styles.subInfo}>
-                <Ionicons name="business" size={14} color="#888" /> Wing{" "}
+                <Ionicons name="business" size={14} color={tokens.ink600} /> Wing{" "}
                 {profile.wing} - {profile.door}
               </Text>
             </View>
@@ -144,21 +145,21 @@ const OthersProfileScreen: React.FC = () => {
             <Text
               style={[
                 styles.actionBtnText,
-                { color: profile.followedByMe ? "#000" : "#fff" },
+                { color: profile.followedByMe ? tokens.ink900 : "#fff" },
               ]}
             >
               {profile.followedByMe ? "Following" : "Follow"}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.messageBtn]}>
-            <Text style={[styles.actionBtnText, { color: "#000" }]}>
+            <Text style={[styles.actionBtnText, { color: tokens.ink900 }]}>
               Message
             </Text>
           </TouchableOpacity>
         </View>
         {/* Location */}
         <View style={styles.hometownRow}>
-          <Ionicons name="location-outline" size={18} color="#888" />
+          <Ionicons name="location-outline" size={18} color={tokens.ink600} />
           <Text style={styles.hometownText}>{profile.hometown}</Text>
         </View>
       </View>
@@ -171,7 +172,7 @@ const OthersProfileScreen: React.FC = () => {
             navigation.navigate("PostDetail", { postId: item.id })
           }
           emptyMessage="No posts yet."
-          emptyTextStyle={{ color: "#888", padding: 16 }}
+          emptyTextStyle={{ color: tokens.ink600, padding: 16 }}
           contentContainerStyle={styles.postsGrid}
           styles={{ postImage: styles.postImage }}
         />

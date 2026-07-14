@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import React from "react";
+import { Image, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
-import styles from "../../styles/loginStyles";
 import { loginUser } from "../../api/user";
 import { useAuth } from "../../context/AuthContext";
-import AuthLogo from "../../components/auth/AuthLogo";
-import FormField from "../../components/auth/FormField";
 import GoogleSignInButton from "./google/GoogleSignInButton";
+import TextField from "../../components/ui/TextField";
+import Button from "../../components/ui/Button";
+import { tokens } from "../../theme/colors";
+import { typography } from "../../theme/typography";
+import { spacing } from "../../theme/spacing";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Required"),
@@ -16,103 +18,116 @@ const LoginSchema = Yup.object().shape({
 
 export default function Login({ navigation }: any) {
   const { signIn } = useAuth();
-  const [focusedInput, setFocusedInput] = useState<"email" | "password" | null>(
-    null
-  );
 
   return (
-    <View style={styles.container}>
-      <AuthLogo containerStyle={styles.logoContainer} />
-
-      <Formik
-        initialValues={{ email: "", password: "" }}
-        validationSchema={LoginSchema}
-        onSubmit={async (values, { setSubmitting, setErrors }) => {
-          setSubmitting(true);
-          const result = await loginUser(values.email, values.password);
-          setSubmitting(false);
-          if (!result.success || !result.token) {
-            setErrors({ email: result.error ?? "Login failed" });
-            return;
-          }
-          await signIn(result.token);
-        }}
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-        }) => (
-          <>
-            <FormField
-              placeholder="Enter your email"
-              focused={focusedInput === "email"}
-              error={errors.email}
-              showError={touched.email}
-              styles={styles}
-              value={values.email}
-              onChangeText={handleChange("email")}
-              onBlur={(e) => {
-                handleBlur("email")(e);
-                setFocusedInput(null);
-              }}
-              onFocus={() => setFocusedInput("email")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <FormField
-              placeholder="Enter your password"
-              focused={focusedInput === "password"}
-              error={errors.password}
-              showError={touched.password}
-              styles={styles}
-              value={values.password}
-              onChangeText={handleChange("password")}
-              onBlur={(e) => {
-                handleBlur("password")(e);
-                setFocusedInput(null);
-              }}
-              onFocus={() => setFocusedInput("password")}
-              secureTextEntry
-            />
+        <Image
+          source={require("../../../assets/images/zencoo.png")}
+          style={styles.logo}
+        />
+        <Text style={styles.headline}>Log in</Text>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSubmit as any}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Log In</Text>
-              )}
-            </TouchableOpacity>
-          </>
-        )}
-      </Formik>
+        <Formik
+          initialValues={{ email: "", password: "" }}
+          validationSchema={LoginSchema}
+          onSubmit={async (values, { setSubmitting, setErrors }) => {
+            setSubmitting(true);
+            const result = await loginUser(values.email, values.password);
+            setSubmitting(false);
+            if (!result.success || !result.token) {
+              setErrors({ email: result.error ?? "Login failed" });
+              return;
+            }
+            await signIn(result.token);
+          }}
+        >
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isSubmitting }) => (
+            <>
+              <TextField
+                label="Email"
+                placeholder="you@example.com"
+                error={touched.email ? errors.email : undefined}
+                value={values.email}
+                onChangeText={handleChange("email")}
+                onBlur={handleBlur("email")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextField
+                label="Password"
+                placeholder="Enter your password"
+                error={touched.password ? errors.password : undefined}
+                value={values.password}
+                onChangeText={handleChange("password")}
+                onBlur={handleBlur("password")}
+                secureTextEntry
+              />
+              <Button
+                title="Log In"
+                onPress={handleSubmit as any}
+                loading={isSubmitting}
+                style={{ marginTop: spacing.sm }}
+              />
+            </>
+          )}
+        </Formik>
 
-      <GoogleSignInButton />
+        <GoogleSignInButton />
 
-      {/* Bottom Text */}
-      <View style={styles.bottomTextContainer}>
-        <Text style={styles.bottomText}>
-          Don't have an account?{" "}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account? </Text>
           <Text
-            style={styles.bottomTextBold}
+            style={styles.footerLink}
             onPress={() =>
-              navigation && navigation.navigate
-                ? navigation.navigate("SignUpStepOne")
-                : null
+              navigation && navigation.navigate ? navigation.navigate("SignUpStepOne") : null
             }
           >
-            Sign up.
+            Sign up
           </Text>
-        </Text>
-      </View>
-    </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.surface,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
+  },
+  logo: {
+    width: 160,
+    height: 54,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginBottom: spacing.xl,
+  },
+  headline: {
+    ...typography.title,
+    color: tokens.ink900,
+    marginBottom: spacing.xl,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: spacing.xxl,
+  },
+  footerText: {
+    ...typography.body,
+    color: tokens.ink600,
+  },
+  footerLink: {
+    ...typography.body,
+    fontWeight: "700",
+    color: tokens.primary,
+  },
+});

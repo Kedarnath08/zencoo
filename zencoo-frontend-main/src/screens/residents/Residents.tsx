@@ -11,6 +11,7 @@ import { queryKeys } from "../../api/queryKeys";
 import ScreenHeader from "../../components/ScreenHeader";
 import ResidentListItem from "../../components/ResidentListItem";
 import LoadingView from "../../components/LoadingView";
+import { tokens } from "../../theme/colors";
 
 const NAV_HEIGHT = 64;
 const PAGE_SIZE = 20;
@@ -92,7 +93,7 @@ const Residents = () => {
             placeholder="Search Resident"
             value={search}
             onChangeText={setSearch}
-            placeholderTextColor="#888"
+            placeholderTextColor={tokens.ink400}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
           />

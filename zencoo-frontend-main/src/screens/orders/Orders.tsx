@@ -18,6 +18,7 @@ import { useRefreshOnFocus } from "../../hooks/useRefreshOnFocus";
 import { useUpdateOrderStatus } from "../../hooks/useUpdateOrderStatus";
 import { queryKeys } from "../../api/queryKeys";
 import LoadingView from "../../components/LoadingView";
+import { tokens } from "../../theme/colors";
 
 const PAGE_SIZE = 20;
 
@@ -199,7 +200,7 @@ const Orders = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#E5ECF6" }}>
+    <View style={{ flex: 1, backgroundColor: tokens.canvas }}>
       {/* Header with shadow */}
       <View
         style={[
@@ -208,7 +209,7 @@ const Orders = () => {
         ]}
       >
         <View style={styles.plusBorder}>
-          <ChecklistIcon width={26} height={26} color="#222" />
+          <ChecklistIcon width={26} height={26} color={tokens.ink900} />
         </View>
         <Text style={styles.headerTitle}>Orders</Text>
       </View>

@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
-import styles from "../../styles/signupStyles";
 import { checkEmailRegistered } from "../../api/user";
-import AuthLogo from "../../components/auth/AuthLogo";
+import TextField from "../../components/ui/TextField";
+import Button from "../../components/ui/Button";
+import StepIndicator from "../../components/ui/StepIndicator";
 import BackArrowButton from "../../components/auth/BackArrowButton";
-import LoginFooterLink from "../../components/auth/LoginFooterLink";
-import FormField from "../../components/auth/FormField";
+import { tokens } from "../../theme/colors";
+import { typography } from "../../theme/typography";
+import { spacing } from "../../theme/spacing";
 
 const SignupStepOneSchema = Yup.object().shape({
   fullName: Yup.string().required("Full Name is required"),
@@ -17,12 +18,13 @@ const SignupStepOneSchema = Yup.object().shape({
 });
 
 export default function SignUpStepOne({ navigation }: any) {
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
-
   return (
     <View style={styles.container}>
       <BackArrowButton onPress={() => navigation.goBack()} />
-      <AuthLogo containerStyle={styles.logoContainer} />
+      <View style={styles.header}>
+        <Image source={require("../../../assets/images/zencoo.png")} style={styles.logo} />
+        <StepIndicator step={1} total={3} />
+      </View>
 
       <Formik
         initialValues={{
@@ -43,80 +45,66 @@ export default function SignUpStepOne({ navigation }: any) {
           return errors;
         }}
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-        }) => (
+        {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
           <>
-            <FormField
-              placeholder="Full Name"
-              focused={focusedInput === "fullName"}
-              error={errors.fullName}
-              showError={touched.fullName}
-              styles={styles}
+            <Text style={styles.headline}>Let's get to know you</Text>
+
+            <TextField
+              label="Full Name"
+              placeholder="Jane Doe"
+              error={touched.fullName ? errors.fullName : undefined}
               value={values.fullName}
               onChangeText={handleChange("fullName")}
-              onBlur={(e) => {
-                handleBlur("fullName")(e);
-                setFocusedInput(null);
-              }}
-              onFocus={() => setFocusedInput("fullName")}
+              onBlur={handleBlur("fullName")}
             />
-            <FormField
-              placeholder="Email"
-              focused={focusedInput === "email"}
-              error={errors.email}
-              showError={touched.email}
-              styles={styles}
+            <TextField
+              label="Email"
+              placeholder="you@example.com"
+              error={touched.email ? errors.email : undefined}
               value={values.email}
               onChangeText={handleChange("email")}
-              onBlur={(e) => {
-                handleBlur("email")(e);
-                setFocusedInput(null);
-              }}
+              onBlur={handleBlur("email")}
               keyboardType="email-address"
               autoCapitalize="none"
-              onFocus={() => setFocusedInput("email")}
             />
-            <FormField
-              placeholder="Door Number"
-              focused={focusedInput === "doorNumber"}
-              error={errors.doorNumber}
-              showError={touched.doorNumber}
-              styles={styles}
+            <TextField
+              label="Door Number"
+              placeholder="A101"
+              error={touched.doorNumber ? errors.doorNumber : undefined}
               value={values.doorNumber}
               onChangeText={handleChange("doorNumber")}
-              onBlur={(e) => {
-                handleBlur("doorNumber")(e);
-                setFocusedInput(null);
-              }}
-              onFocus={() => setFocusedInput("doorNumber")}
+              onBlur={handleBlur("doorNumber")}
             />
-            {/* Community Dropdown */}
-            <TextInput
-              style={styles.input}
-              value="Sobha HRC Prestine, Jakkuru"
-              editable={false}
-              placeholderTextColor="#888"
-            />
-            {/* Next Button */}
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSubmit as any}
-            >
-              <Text style={styles.buttonText}>Next</Text>
-            </TouchableOpacity>
-            <LoginFooterLink
-              onPress={() => navigation.navigate("Login")}
-              styles={styles}
-            />
+            <TextField label="Community" value={values.community} locked />
+
+            <Button title="Next" onPress={handleSubmit as any} style={{ marginTop: spacing.sm }} />
           </>
         )}
       </Formik>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 64,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xxl,
+  },
+  logo: {
+    width: 140,
+    height: 46,
+    resizeMode: "contain",
+    marginBottom: spacing.lg,
+  },
+  headline: {
+    ...typography.title,
+    color: tokens.ink900,
+    marginBottom: spacing.xl,
+  },
+});

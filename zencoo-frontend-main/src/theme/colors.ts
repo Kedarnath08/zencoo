@@ -1,20 +1,25 @@
 /**
- * Shared color tokens for values that repeat across many screens/styles.
- * Values are copied as-is from existing usage — this file is a single
- * source of truth, not a redesign. Prefer these over raw hex literals for
- * the brand/status/background colors; one-off decorative colors used in a
- * single place are left inline.
+ * Design-system color tokens (UI_UX_REDESIGN.md Part 2.1). Single source of
+ * truth for every color in the app — prefer these over raw hex literals.
  */
-export const colors = {
+export const tokens = {
+  // Brand
   primary: "#FF8C00",
-  primaryLight: "#FFA500",
-  background: "#E5ECF6",
-  danger: "#F44336",
-  likeRed: "#FF6B6B",
-  success: "#43A047",
-  textPrimary: "#222",
-  textSecondary: "#888",
-  textMuted: "#444",
-  white: "#fff",
-  black: "#000",
+  primaryDark: "#E67A00",
+  primaryTint: "#FFF3E0",
+
+  // Neutrals
+  ink900: "#1A1A1A",
+  ink600: "#6B7280",
+  ink400: "#9CA3AF",
+  line: "#E8E8EC",
+  surface: "#FFFFFF",
+  canvas: "#FAFAFA",
+
+  // Status
+  success: "#2E9E5B",
+  danger: "#E5484D",
+  warning: "#F5A524",
 } as const;
+
+export type ColorToken = keyof typeof tokens;

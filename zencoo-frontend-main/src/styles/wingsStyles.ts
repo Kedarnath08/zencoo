@@ -1,10 +1,12 @@
 import { StyleSheet } from "react-native";
-import { colors } from "../theme/colors";
+import { tokens } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { radius, spacing, elevation } from "../theme/spacing";
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: tokens.canvas,
   },
   header: {
     position: "absolute",
@@ -13,47 +15,31 @@ export const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
-    paddingHorizontal: 16,
-    // Shadow for iOS
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    // Shadow for Android
-    elevation: 4,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    ...elevation.floating,
     zIndex: 10,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-    marginLeft: 10, // space between icon and title
-    letterSpacing: 0.5,
+    ...typography.title,
+    color: tokens.ink900,
+    marginLeft: spacing.sm,
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   wingCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    paddingVertical: 28,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.xxl,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#ff9800",
-    shadowColor: "#ff9800",
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 8,
-    elevation: 6,
+    marginBottom: spacing.lg,
+    ...elevation.raised,
   },
   wingCardText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    ...typography.title,
+    color: tokens.ink900,
   },
 });

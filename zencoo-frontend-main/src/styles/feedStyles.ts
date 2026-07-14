@@ -1,13 +1,14 @@
-import { StyleSheet, Platform } from "react-native";
-import { colors } from "../theme/colors";
+import { StyleSheet } from "react-native";
+import { tokens } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { radius, spacing, elevation } from "../theme/spacing";
 
-const CARD_RADIUS = 22;
 const NAV_HEIGHT = 74;
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: tokens.canvas,
   },
   centered: {
     flex: 1,
@@ -18,182 +19,84 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.white,
-    paddingHorizontal: 16,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 4,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.lg,
+    ...elevation.floating,
     zIndex: 10,
   },
   logo: {
-    width: 160,
-    height: 50,
+    width: 150,
+    height: 46,
     resizeMode: "contain",
     marginLeft: 0,
     marginRight: 0,
   },
   notificationBtn: {
-    padding: 2,
-    marginLeft: 10,
-    marginRight: 10,
+    padding: spacing.xs,
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
   },
   feedContainer: {
-    paddingBottom: NAV_HEIGHT + 10,
-    paddingTop: 8,
-  },
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: CARD_RADIUS,
-    marginHorizontal: 16,
-    marginBottom: 22,
-    paddingBottom: 10,
-    shadowColor: colors.black,
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
-  name: {
-    fontWeight: "bold",
-    fontSize: 17,
-    color: colors.textPrimary,
-  },
-  handle: {
-    fontSize: 13,
-    color: "#B0B0B0",
-    marginTop: 2,
-  },
-  iconBtn: {
-    marginLeft: 10,
-    padding: 4,
-  },
-  imageWrapper: {
-    width: "100%",
-    alignItems: "center",
-    position: "relative",
-  },
-  cardImage: {
-    width: "92%",
-    height: 200,
-    borderRadius: 18,
-    marginTop: 6,
-    marginBottom: 10,
-    backgroundColor: "#eee",
-  },
-  imageOverlay: {
-    position: "absolute",
-    top: 18,
-    right: 30,
-    backgroundColor: colors.primaryLight,
-    borderRadius: 16,
-    padding: 6,
-    zIndex: 2,
-  },
-  overlayIconBtn: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionBarContainer: {
-    alignItems: "flex-start",
-    paddingHorizontal: 18,
-    marginBottom: 6,
-  },
-  actionBar: {
-    flexDirection: "row",
-    backgroundColor: "#FFF7E6",
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    marginTop: -24,
-    marginBottom: 8,
-    zIndex: 2,
-  },
-  actionIcon: {
-    marginRight: 22,
-  },
-  description: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    paddingHorizontal: 18,
-    marginBottom: 2,
-    marginTop: 2,
-  },
-  timeText: {
-    fontSize: 12,
-    color: "#B0B0B0",
-    paddingHorizontal: 18,
-    marginBottom: 10,
-    marginTop: 2,
+    paddingBottom: NAV_HEIGHT + spacing.sm,
+    paddingTop: spacing.sm,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: tokens.surface,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: tokens.line,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    ...typography.heading,
+    color: tokens.ink900,
   },
   closeButton: {
     fontSize: 18,
     fontWeight: "bold",
+    color: tokens.ink900,
   },
   commentsList: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   commentItem: {
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   commentText: {
-    fontSize: 16,
+    ...typography.body,
+    color: tokens.ink900,
   },
   commentInput: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
+    borderTopColor: tokens.line,
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginRight: 10,
+    borderWidth: 1.5,
+    borderColor: tokens.line,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginRight: spacing.sm,
     maxHeight: 100,
+    ...typography.body,
+    color: tokens.ink900,
   },
   sendButton: {
-    padding: 10,
+    padding: spacing.sm,
   },
   sendIcon: {
     fontSize: 20,
+    color: tokens.primary,
   },
 });
 

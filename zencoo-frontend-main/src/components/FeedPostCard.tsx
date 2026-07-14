@@ -11,6 +11,10 @@ import type { FeedPost } from "../api/posts";
 import { timeAgo } from "../utils/time";
 import { formatPrice } from "../utils/currency";
 import Avatar from "./Avatar";
+import Card from "./ui/Card";
+import { tokens } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { radius, spacing } from "../theme/spacing";
 
 interface FeedPostCardProps {
   post: FeedPost;
@@ -29,19 +33,19 @@ const FeedPostCard: React.FC<FeedPostCardProps> = ({
   onSave,
   onOrder,
 }) => (
-  <View style={styles.card}>
+  <Card style={styles.card}>
     {/* Card Header */}
     <View style={styles.cardHeader}>
-      <Avatar uri={post.profilePic} style={styles.avatar} />
-      <View style={{ flex: 1, marginLeft: 10 }}>
+      <Avatar uri={post.profilePic} size="sm" style={styles.avatar} />
+      <View style={{ flex: 1, marginLeft: spacing.sm }}>
         <Text style={styles.name}>{post.fullName}</Text>
         <Text style={styles.handle}>@{post.username}</Text>
       </View>
       <TouchableOpacity style={styles.iconBtn} onPress={onOrder}>
-        <Icon name="cart-outline" size={22} color="#222" />
+        <Icon name="cart-outline" size={22} color={tokens.ink900} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.iconBtn}>
-        <Icon name="dots-vertical" size={22} color="#222" />
+        <Icon name="dots-vertical" size={22} color={tokens.ink900} />
       </TouchableOpacity>
     </View>
     {/* Card Image */}
@@ -54,101 +58,66 @@ const FeedPostCard: React.FC<FeedPostCardProps> = ({
       )}
     </View>
     {/* Action Bar */}
-    <View style={styles.actionBarContainer}>
-      <View style={styles.actionBar}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={styles.countText}>{post.likeCount}</Text>
-          <TouchableOpacity onPress={onLike}>
-            <Icon
-              name={post.likedByMe ? "heart" : "heart-outline"}
-              size={22}
-              color={post.likedByMe ? "#E94F37" : "#fff"}
-              style={styles.actionIcon}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={styles.countText}>{post.commentCount}</Text>
-          <TouchableOpacity onPress={onComment}>
-            <Icon
-              name="comment-outline"
-              size={22}
-              color="#fff"
-              style={styles.actionIcon}
-            />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity onPress={onShare}>
+    <View style={styles.actionBar}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TouchableOpacity onPress={onLike} style={styles.actionItem}>
           <Icon
-            name="send-outline"
+            name={post.likedByMe ? "heart" : "heart-outline"}
             size={22}
-            color="#fff"
-            style={styles.actionIcon}
+            color={post.likedByMe ? tokens.danger : tokens.ink600}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onSave}>
-          <Icon
-            name="bookmark-outline"
-            size={22}
-            color="#fff"
-            style={styles.actionIcon}
-          />
-        </TouchableOpacity>
+        <Text style={styles.countText}>{post.likeCount}</Text>
       </View>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TouchableOpacity onPress={onComment} style={styles.actionItem}>
+          <Icon name="comment-outline" size={22} color={tokens.ink600} />
+        </TouchableOpacity>
+        <Text style={styles.countText}>{post.commentCount}</Text>
+      </View>
+      <TouchableOpacity onPress={onShare} style={styles.actionItem}>
+        <Icon name="send-outline" size={22} color={tokens.ink600} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onSave} style={styles.actionItem}>
+        <Icon name="bookmark-outline" size={22} color={tokens.ink600} />
+      </TouchableOpacity>
     </View>
     {/* Description and Time */}
-    {post.caption ? (
-      <Text style={styles.description}>{post.caption}</Text>
-    ) : null}
+    {post.caption ? <Text style={styles.description}>{post.caption}</Text> : null}
     <Text style={styles.timeText}>Posted {timeAgo(post.createdAt)} ago</Text>
-  </View>
+  </Card>
 );
-
-const CARD_RADIUS = 22;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    borderRadius: CARD_RADIUS,
-    marginHorizontal: 8,
-    marginBottom: 18,
-    paddingBottom: 0,
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 4,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    padding: 0,
     overflow: "hidden",
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 0,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     borderWidth: 2,
-    borderColor: "#fff",
-    backgroundColor: "#eee",
+    borderColor: tokens.surface,
   },
   name: {
-    fontWeight: "bold",
-    fontSize: 18,
-    color: "#222",
-    marginBottom: -2,
+    ...typography.heading,
+    color: tokens.ink900,
   },
   handle: {
-    fontSize: 14,
-    color: "#7B8CA6",
-    marginTop: 0,
+    ...typography.caption,
+    color: tokens.ink600,
+    marginTop: 1,
   },
   iconBtn: {
-    marginLeft: 8,
-    padding: 4,
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
   },
   imageWrapper: {
     width: "100%",
@@ -157,71 +126,51 @@ const styles = StyleSheet.create({
   },
   priceTag: {
     position: "absolute",
-    top: 20,
-    right: 12,
+    top: spacing.md,
+    right: spacing.md,
     backgroundColor: "rgba(0,0,0,0.65)",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   priceTagText: {
     color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
+    ...typography.label,
   },
   cardImage: {
     width: "100%",
-    height: 210,
-    borderRadius: 18,
-    marginTop: 10,
-    marginBottom: 0,
-    backgroundColor: "#eee",
-  },
-  actionBarContainer: {
-    alignItems: "flex-start",
-    paddingHorizontal: 0,
-    marginTop: -38,
-    marginBottom: 0,
-    width: "100%",
+    height: 220,
+    backgroundColor: tokens.canvas,
   },
   actionBar: {
     flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.22)",
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
     alignItems: "center",
-    width: "100%",
-    justifyContent: "space-between",
+    backgroundColor: tokens.primaryTint,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.lg,
   },
-  actionIcon: {
-    marginRight: 0,
-    marginLeft: 0,
-    paddingHorizontal: 4,
-  },
-  description: {
-    fontSize: 15,
-    color: "#444",
-    paddingHorizontal: 16,
-    marginBottom: 0,
-    marginTop: 10,
-    fontWeight: "400",
-  },
-  timeText: {
-    fontSize: 13,
-    color: "#B0B0B0",
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    marginTop: 2,
-    textAlign: "left",
+  actionItem: {
+    padding: spacing.xs,
+    marginRight: -spacing.xs,
   },
   countText: {
-    color: "#fff",
-    fontSize: 15,
-    marginRight: 2,
-    marginLeft: 0,
-    fontWeight: "bold",
+    ...typography.label,
+    color: tokens.ink600,
+    marginLeft: 2,
+  },
+  description: {
+    ...typography.body,
+    color: tokens.ink900,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  timeText: {
+    ...typography.caption,
+    color: tokens.ink400,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
   },
 });
 
