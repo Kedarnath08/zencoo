@@ -20,21 +20,28 @@ export const radius = {
   pill: 999,
 } as const;
 
-/** Three-level elevation scale (UI_UX_REDESIGN.md Part 2.4). */
+/**
+ * Three-level elevation scale (UI_UX_REDESIGN.md Part 2.4) — deliberately
+ * very soft. Modern flat UI (Instagram, current iOS) barely uses shadow at
+ * all; separation comes from whitespace and hairline borders, not drop
+ * shadows. `floating` is for content that's genuinely lifted off the page
+ * (e.g. a profile card overlapping a header image) — app bars/headers
+ * should use a hairline `borderBottomColor: tokens.line` instead, not this.
+ */
 export const elevation: Record<"flat" | "raised" | "floating", ViewStyle> = {
   flat: {},
   raised: {
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
   },
   floating: {
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 3,
   },
 };

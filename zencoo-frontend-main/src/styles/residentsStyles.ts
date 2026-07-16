@@ -17,7 +17,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: tokens.surface,
     paddingHorizontal: spacing.lg,
-    ...elevation.floating,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.line,
     zIndex: 10,
   },
   headerTitle: {

@@ -12,29 +12,23 @@ import { tokens } from "../theme/colors";
 
 interface Props extends BottomTabBarProps {}
 
-const NAV_HEIGHT = 64;
-const ICON_COLOR = tokens.ink900;
+const NAV_HEIGHT = 60;
+const ACTIVE_OPACITY = 1;
+const INACTIVE_OPACITY = 0.38;
 
 const BottomNavBar: React.FC<Props> = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
+  const activeName = state.routeNames[state.index];
 
-  // Tab config for easier mapping
+  // Tab config for easier mapping. The plus (NewPost) icon's SVG has a
+  // hardcoded dark fill, so it's drawn as a plain white glyph on a solid
+  // circle instead of relying on the icon file.
   const tabs = [
-    { name: "Feed", icon: <HomeIcon width={28} height={28} color={ICON_COLOR} /> },
-    {
-      name: "Residents",
-      icon: <BuildingIcon width={28} height={28} color={ICON_COLOR} />,
-    },
-    {
-      name: "NewPost",
-      icon: <PlusIcon width={22} height={22} color={ICON_COLOR} />,
-      isPlus: true,
-    },
-    {
-      name: "Orders",
-      icon: <ChecklistIcon width={28} height={28} color={ICON_COLOR} />,
-    },
-    { name: "Myprofile", icon: <AccountIcon width={28} height={28} color={ICON_COLOR} /> },
+    { name: "Feed", icon: HomeIcon },
+    { name: "Residents", icon: BuildingIcon },
+    { name: "NewPost", isPlus: true },
+    { name: "Orders", icon: ChecklistIcon },
+    { name: "Myprofile", icon: AccountIcon },
   ];
 
   return (
@@ -48,22 +42,37 @@ const BottomNavBar: React.FC<Props> = ({ state, descriptors, navigation }) => {
       ]}
     >
       <View style={styles.inner}>
-        {tabs.map((tab, idx) => {
+        {tabs.map((tab) => {
+          const isActive = activeName === tab.name;
+
+          if (tab.isPlus) {
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                style={styles.plusWrapper}
+                onPress={() => navigation.navigate(tab.name as any)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.plusCircle}>
+                  <View style={styles.plusGlyphH} />
+                  <View style={styles.plusGlyphV} />
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
+          const Icon = tab.icon!;
           return (
             <TouchableOpacity
               key={tab.name}
-              style={tab.isPlus ? styles.plusWrapper : styles.tab}
+              style={styles.tab}
               onPress={() => navigation.navigate(tab.name as any)}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              {tab.isPlus ? (
-                <View style={styles.plusBorder}>{tab.icon}</View>
-              ) : (
-                tab.icon
-              )}
-              {state.routeNames[state.index] === tab.name && (
-                <View style={styles.activeIndicator} />
-              )}
+              <View style={{ opacity: isActive ? ACTIVE_OPACITY : INACTIVE_OPACITY }}>
+                <Icon width={26} height={26} />
+              </View>
+              <View style={[styles.activeDot, isActive && styles.activeDotOn]} />
             </TouchableOpacity>
           );
         })}
@@ -77,7 +86,7 @@ const BottomNavBar: React.FC<Props> = ({ state, descriptors, navigation }) => {
             right: 0,
             bottom: 0,
             height: insets.bottom,
-            backgroundColor: "#fff",
+            backgroundColor: tokens.surface,
             zIndex: -1,
           }}
         />
@@ -99,14 +108,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    backgroundColor: tokens.primary,
+    backgroundColor: tokens.surface,
     height: NAV_HEIGHT,
     paddingHorizontal: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: -2 },
-    shadowRadius: 8,
-    elevation: 8,
+    borderTopWidth: 1,
+    borderTopColor: tokens.line,
   },
   tab: {
     flex: 1,
@@ -118,22 +124,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  plusBorder: {
-    borderWidth: 2,
-    borderColor: tokens.ink900,
+  plusCircle: {
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    width: 32,
-    height: 32,
+    backgroundColor: tokens.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  activeIndicator: {
-    marginTop: 4,
-    alignSelf: "center",
+  plusGlyphH: {
+    position: "absolute",
     width: 18,
+    height: 2.5,
+    borderRadius: 2,
+    backgroundColor: tokens.surface,
+  },
+  plusGlyphV: {
+    position: "absolute",
+    width: 2.5,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: tokens.surface,
+  },
+  activeDot: {
+    marginTop: 4,
+    width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
+  },
+  activeDotOn: {
+    backgroundColor: tokens.primary,
   },
 });
 

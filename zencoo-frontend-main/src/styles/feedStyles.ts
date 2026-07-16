@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { tokens } from "../theme/colors";
 import { typography } from "../theme/typography";
-import { radius, spacing, elevation } from "../theme/spacing";
+import { radius, spacing } from "../theme/spacing";
 
 const NAV_HEIGHT = 74;
 
@@ -21,7 +21,8 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: tokens.surface,
     paddingHorizontal: spacing.lg,
-    ...elevation.floating,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.line,
     zIndex: 10,
   },
   logo: {

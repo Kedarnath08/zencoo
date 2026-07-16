@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { tokens } from "../theme/colors";
 import { typography } from "../theme/typography";
-import { radius, spacing, elevation } from "../theme/spacing";
+import { radius, spacing } from "../theme/spacing";
 
 const styles = StyleSheet.create({
   listContent: {
@@ -19,7 +19,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: tokens.surface,
     paddingHorizontal: spacing.lg,
-    ...elevation.floating,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.line,
     zIndex: 10,
   },
   plusBorder: {

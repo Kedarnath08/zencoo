@@ -11,7 +11,6 @@ import type { FeedPost } from "../api/posts";
 import { timeAgo } from "../utils/time";
 import { formatPrice } from "../utils/currency";
 import Avatar from "./Avatar";
-import Card from "./ui/Card";
 import { tokens } from "../theme/colors";
 import { typography } from "../theme/typography";
 import { radius, spacing } from "../theme/spacing";
@@ -25,6 +24,10 @@ interface FeedPostCardProps {
   onOrder: () => void;
 }
 
+/**
+ * Full-bleed, borderless post — Instagram's chrome is whitespace and a
+ * hairline separator between posts, not a floating card with a shadow.
+ */
 const FeedPostCard: React.FC<FeedPostCardProps> = ({
   post,
   onLike,
@@ -33,7 +36,7 @@ const FeedPostCard: React.FC<FeedPostCardProps> = ({
   onSave,
   onOrder,
 }) => (
-  <Card style={styles.card}>
+  <View style={styles.card}>
     {/* Card Header */}
     <View style={styles.cardHeader}>
       <Avatar uri={post.profilePic} size="sm" style={styles.avatar} />
@@ -59,41 +62,54 @@ const FeedPostCard: React.FC<FeedPostCardProps> = ({
     </View>
     {/* Action Bar */}
     <View style={styles.actionBar}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <TouchableOpacity onPress={onLike} style={styles.actionItem}>
-          <Icon
-            name={post.likedByMe ? "heart" : "heart-outline"}
-            size={22}
-            color={post.likedByMe ? tokens.danger : tokens.ink600}
-          />
-        </TouchableOpacity>
-        <Text style={styles.countText}>{post.likeCount}</Text>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <TouchableOpacity onPress={onComment} style={styles.actionItem}>
-          <Icon name="comment-outline" size={22} color={tokens.ink600} />
-        </TouchableOpacity>
-        <Text style={styles.countText}>{post.commentCount}</Text>
-      </View>
-      <TouchableOpacity onPress={onShare} style={styles.actionItem}>
-        <Icon name="send-outline" size={22} color={tokens.ink600} />
+      <TouchableOpacity onPress={onLike} style={styles.actionItem}>
+        <Icon
+          name={post.likedByMe ? "heart" : "heart-outline"}
+          size={25}
+          color={post.likedByMe ? tokens.danger : tokens.ink900}
+        />
       </TouchableOpacity>
+      <TouchableOpacity onPress={onComment} style={styles.actionItem}>
+        <Icon name="comment-outline" size={24} color={tokens.ink900} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onShare} style={styles.actionItem}>
+        <Icon name="send-outline" size={24} color={tokens.ink900} />
+      </TouchableOpacity>
+      <View style={{ flex: 1 }} />
       <TouchableOpacity onPress={onSave} style={styles.actionItem}>
-        <Icon name="bookmark-outline" size={22} color={tokens.ink600} />
+        <Icon name="bookmark-outline" size={24} color={tokens.ink900} />
       </TouchableOpacity>
     </View>
-    {/* Description and Time */}
-    {post.caption ? <Text style={styles.description}>{post.caption}</Text> : null}
+    {/* Likes, caption, comments, time */}
+    {post.likeCount > 0 && (
+      <Text style={styles.likeCount}>
+        {post.likeCount} {post.likeCount === 1 ? "like" : "likes"}
+      </Text>
+    )}
+    {post.caption ? (
+      <Text style={styles.description}>
+        <Text style={styles.name}>{post.username}</Text> {post.caption}
+      </Text>
+    ) : null}
+    {post.commentCount > 0 && (
+      <TouchableOpacity onPress={onComment}>
+        <Text style={styles.viewComments}>
+          View all {post.commentCount}{" "}
+          {post.commentCount === 1 ? "comment" : "comments"}
+        </Text>
+      </TouchableOpacity>
+    )}
     <Text style={styles.timeText}>Posted {timeAgo(post.createdAt)} ago</Text>
-  </Card>
+  </View>
 );
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.lg,
-    padding: 0,
-    overflow: "hidden",
+    backgroundColor: tokens.surface,
+    paddingBottom: spacing.md,
+    marginBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.line,
   },
   cardHeader: {
     flexDirection: "row",
@@ -145,32 +161,36 @@ const styles = StyleSheet.create({
   actionBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: tokens.primaryTint,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
   },
   actionItem: {
     padding: spacing.xs,
-    marginRight: -spacing.xs,
+    marginRight: spacing.xs,
   },
-  countText: {
-    ...typography.label,
-    color: tokens.ink600,
-    marginLeft: 2,
+  likeCount: {
+    ...typography.heading,
+    color: tokens.ink900,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
   },
   description: {
     ...typography.body,
     color: tokens.ink900,
     paddingHorizontal: spacing.md,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  viewComments: {
+    ...typography.body,
+    color: tokens.ink600,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
   },
   timeText: {
     ...typography.caption,
     color: tokens.ink400,
     paddingHorizontal: spacing.md,
     marginTop: spacing.xs,
-    marginBottom: spacing.md,
   },
 });
 

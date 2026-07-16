@@ -88,7 +88,8 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.surface,
     paddingHorizontal: spacing.lg,
     paddingTop: 0,
-    ...elevation.floating,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.line,
     zIndex: 10,
   },
   headerTitle: {
